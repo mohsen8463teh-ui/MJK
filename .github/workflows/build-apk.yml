@@ -18,8 +18,7 @@ jobs:
         run: |
           mkdir -p source
           unzip -q MJK_GITHUB_UPLOAD.zip -d source
-                    cp android/gradle.properties source/android/gradle.properties
-          
+          cp android/gradle.properties source/android/gradle.properties
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -42,7 +41,14 @@ jobs:
 
       - name: Build release APK
         working-directory: source/android
-        run: gradle assembleRelease --no-daemon
+        run: |
+          sed -i 's/JavaVersion.VERSION_1.8/JavaVersion.VERSION_17/g' app/build.gradle.kts
+          sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' app/build.gradle.kts
+          sed -i 's/sourceCompatibility = JavaVersion.VERSION_1.8/sourceCompatibility = JavaVersion.VERSION_17/g' app/build.gradle.kts
+          sed -i 's/targetCompatibility = JavaVersion.VERSION_1.8/targetCompatibility = JavaVersion.VERSION_17/g' app/build.gradle.kts
+          sed -i 's/jvmTarget = "1.8"/jvmTarget = "17"/g' app/build.gradle.kts
+          sed -i "s/jvmTarget = '1.8'/jvmTarget = '17'/g" app/build.gradle.kts
+          gradle assembleRelease --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
