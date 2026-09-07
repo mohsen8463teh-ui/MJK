@@ -91,7 +91,6 @@ jobs:
       - name: Install Android SDK
         run: |
           yes | sdkmanager --licenses || true
-
           sdkmanager \
             "platform-tools" \
             "platforms;android-35" \
@@ -105,6 +104,28 @@ jobs:
       - name: Build installable APK
         working-directory: source/android
         run: |
+          gradle clean assembleDebug --no-daemon --stacktrace
+
+      - name: Verify APK
+        run: |
+          APK="source/android/app/build/outputs/apk/debug/app-debug.apk"
+
+          if [ ! -f "$APK" ]; then
+            echo "ERROR: APK was not created."
+            find source/android/app/build -type f 2>/dev/null || true
+            exit 1
+          fi
+
+          echo "APK successfully created:"
+          ls -lh "$APK"
+
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MJK-installable-APK
+          path: source/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          overwrite: true        run: |
           gradle clean assembleDebug --no-daemon --stacktrace
 
       - name: Verify APK
