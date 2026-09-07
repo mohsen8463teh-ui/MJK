@@ -18,13 +18,15 @@ jobs:
         run: |
           echo "Files in repository:"
           ls -lah
-          test -f MJK_GITHUB_UPLOAD_PREMIUM.zip
+
+          test -f MJK_FINAL_10COINS_ALL_PRICES_NOTIFICATIONS.zip
 
       - name: Extract MJK source
         run: |
           rm -rf source
           mkdir -p source
-          unzip -q MJK_GITHUB_UPLOAD_PREMIUM.zip -d source
+
+          unzip -q MJK_FINAL_10COINS_ALL_PRICES_NOTIFICATIONS.zip -d source
 
           echo "Extracted files:"
           find source -maxdepth 3 -type f | head -100
@@ -90,6 +92,7 @@ jobs:
       - name: Install Android SDK
         run: |
           yes | sdkmanager --licenses || true
+
           sdkmanager \
             "platform-tools" \
             "platforms;android-35" \
@@ -105,6 +108,25 @@ jobs:
         run: |
           gradle clean assembleDebug --no-daemon --stacktrace
 
+      - name: Verify APK
+        run: |
+          APK="source/android/app/build/outputs/apk/debug/app-debug.apk"
+
+          if [ ! -f "$APK" ]; then
+            echo "ERROR: APK was not created."
+            find source/android/app/build -type f 2>/dev/null || true
+            exit 1
+          fi
+
+          echo "APK successfully created:"
+          ls -lh "$APK"
+
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MJK-installable-APK
+          path: source/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
       - name: Verify APK
         run: |
           APK="source/android/app/build/outputs/apk/debug/app-debug.apk"
