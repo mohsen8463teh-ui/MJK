@@ -18,6 +18,8 @@ jobs:
         run: |
           mkdir -p source
           unzip -q MJK_GITHUB_UPLOAD.zip -d source
+                    cp android/gradle.properties source/android/gradle.properties
+          
 
       - name: Set up Java
         uses: actions/setup-java@v4
