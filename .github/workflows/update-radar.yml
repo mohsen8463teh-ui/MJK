@@ -15,7 +15,6 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,10 +43,7 @@ jobs:
               const u=new URL(url);
               const req=https.get(
                 u,
-                {
-                  headers:{...HEADERS,...headers},
-                  timeout:20000
-                },
+                {headers:{...HEADERS,...headers},timeout:20000},
                 res=>{
                   let b='';
                   res.setEncoding('utf8');
@@ -66,108 +62,47 @@ jobs:
 
           async function json(url){
             const t=await get(url);
-            try{
-              return JSON.parse(t);
-            }catch(e){
-              throw new Error('invalid JSON: '+e.message);
-            }
+            try{return JSON.parse(t)}
+            catch(e){throw new Error('invalid JSON: '+e.message)}
           }
 
           function num(v){
             if(v&&typeof v==='object')
               v=v.value??v.Value??v.val??v.amount??v.Amount;
-
             const n=Number(String(v??'').replace(/,/g,''));
             return Number.isFinite(n)?n:null;
           }
 
           function norm(x){
-            const last=num(
-              x.pDrCotVal??
-              x.lastPrice??
-              x.pl
-            );
-
-            const prev=num(
-              x.priceYesterday??
-              x.yesterdayPrice??
-              x.py
-            );
+            const last=num(x.pDrCotVal??x.lastPrice??x.pl);
+            const prev=num(x.priceYesterday??x.yesterdayPrice??x.py);
 
             return {
               insCode:String(x.insCode??x.InsCode??''),
-              isin:String(
-                x.instrumentId??
-                x.InstrumentId??
-                x.cIsin??
-                ''
-              ),
-              symbol:String(
-                x.lVal18AFC??
-                x.lVal18??
-                x.instrumentName??
-                x.symbol??
-                ''
-              ),
-              name:String(
-                x.lVal30??
-                x.companyNamePersian??
-                x.companyName??
-                x.instrumentName??
-                ''
-              ),
+              isin:String(x.instrumentId??x.InstrumentId??x.cIsin??''),
+              symbol:String(x.lVal18AFC??x.lVal18??x.instrumentName??x.symbol??''),
+              name:String(x.lVal30??x.companyNamePersian??x.companyName??x.instrumentName??''),
               last,
-              close:num(
-                x.pClosing??
-                x.closingPrice??
-                x.pc
-              ),
+              close:num(x.pClosing??x.closingPrice??x.pc),
               prev,
-              change:
-                num(x.changePercent??x.pct) ??
-                (prev ? ((last-prev)/prev*100) : null),
-              vol:num(
-                x.qTotTran5J??
-                x.tradeVolume??
-                x.volume
-              ),
-              value:num(
-                x.qTotCap??
-                x.tradeValue??
-                x.value
-              ),
-              trades:num(
-                x.zTotTran??
-                x.tradeCount
-              ),
+              change:num(x.changePercent??x.pct)??(prev?((last-prev)/prev*100):null),
+              vol:num(x.qTotTran5J??x.tradeVolume??x.volume),
+              value:num(x.qTotCap??x.tradeValue??x.value),
+              trades:num(x.zTotTran??x.tradeCount),
               eps:num(x.eps),
               pe:num(x.pe),
               flow:num(x.flow),
-              state:String(
-                x.stateName??
-                x.state??
-                ''
-              ),
-              hEven:
-                x.hEven??
-                x.lastTradeTime??
-                null
+              state:String(x.stateName??x.state??''),
+              hEven:x.hEven??x.lastTradeTime??null
             };
           }
 
           async function marketWatch(){
-            const u=
-              'https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?market=0&industrialGroup=&paperTypes%5B0%5D=1&paperTypes%5B1%5D=2&paperTypes%5B2%5D=3&paperTypes%5B3%5D=4&paperTypes%5B4%5D=5&paperTypes%5B5%5D=6&paperTypes%5B6%5D=7&paperTypes%5B7%5D=8&paperTypes%5B8%5D=9&showTraded=false&withBestLimits=true&hEven=0&RefID=0';
+            const u='https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?market=0&industrialGroup=&paperTypes%5B0%5D=1&paperTypes%5B1%5D=2&paperTypes%5B2%5D=3&paperTypes%5B3%5D=4&paperTypes%5B4%5D=5&paperTypes%5B5%5D=6&paperTypes%5B6%5D=7&paperTypes%5B7%5D=8&paperTypes%5B8%5D=9&showTraded=false&withBestLimits=true&hEven=0&RefID=0';
 
             const j=await json(u);
-
-            const a=Array.isArray(j)
-              ?j
-              :(j.marketwatch||[]);
-
-            const rows=a
-              .map(norm)
-              .filter(x=>x.symbol&&x.last!=null);
+            const a=Array.isArray(j)?j:(j.marketwatch||[]);
+            const rows=a.map(norm).filter(x=>x.symbol&&x.last!=null);
 
             if(!rows.length)
               throw new Error('empty stock marketwatch');
@@ -177,20 +112,12 @@ jobs:
 
           async function clientAll(){
             try{
-              const j=await json(
-                'https://cdn.tsetmc.com/api/ClientType/GetClientTypeAll'
-              );
-
+              const j=await json('https://cdn.tsetmc.com/api/ClientType/GetClientTypeAll');
               const a=j.clientTypeAllDto||[];
               const m=new Map();
 
               for(const x of a){
-                const id=String(
-                  x.insCode??
-                  x.InsCode??
-                  ''
-                );
-
+                const id=String(x.insCode??x.InsCode??'');
                 if(id){
                   m.set(id,{
                     naturalBuy:num(x.buy_I_Volume),
@@ -207,10 +134,7 @@ jobs:
 
               return m;
             }catch(e){
-              console.warn(
-                'client type unavailable',
-                e.message
-              );
+              console.warn('client type unavailable',e.message);
               return new Map();
             }
           }
@@ -218,18 +142,11 @@ jobs:
           async function depth(id){
             try{
               const j=await json(
-                'https://cdn.tsetmc.com/api/BestLimits/'+
-                encodeURIComponent(id)
+                'https://cdn.tsetmc.com/api/BestLimits/'+encodeURIComponent(id)
               );
 
-              const a=Array.isArray(j)
-                ?j
-                :(j.bestLimits||[]);
-
-              let bid=0;
-              let ask=0;
-              let bidOrders=0;
-              let askOrders=0;
+              const a=Array.isArray(j)?j:(j.bestLimits||[]);
+              let bid=0,ask=0,bidOrders=0,askOrders=0;
 
               for(const x of a){
                 const d=num(x.qTitMeDem);
@@ -251,10 +168,8 @@ jobs:
                 askDepth:ask||null,
                 bidOrders:bidOrders||null,
                 askOrders:askOrders||null,
-                orderImbalance:
-                  (bid||ask)
-                    ?(bid-ask)/Math.max(1,bid+ask)
-                    :null
+                orderImbalance:(bid||ask)?
+                  (bid-ask)/Math.max(1,bid+ask):null
               };
             }catch(e){
               return {};
@@ -268,40 +183,27 @@ jobs:
                 encodeURIComponent(id)+'/30'
               );
 
-              const a=Array.isArray(j)
-                ?j
-                :(j.closingPriceDaily||[]);
+              const a=Array.isArray(j)?j:(j.closingPriceDaily||[]);
 
-              const rows=a
-                .map(x=>({
-                  close:num(x.pClosing),
-                  vol:num(x.qTotTran5J),
-                  date:x.dEven
-                }))
-                .filter(x=>x.close!=null);
+              const rows=a.map(x=>({
+                close:num(x.pClosing),
+                vol:num(x.qTotTran5J),
+                date:x.dEven
+              })).filter(x=>x.close!=null);
 
               if(!rows.length)
                 return {};
 
-              const vols=rows
-                .map(x=>x.vol)
-                .filter(x=>x!=null);
-
-              const avgVol=vols.length
-                ?vols.reduce((a,b)=>a+b,0)/vols.length
-                :null;
+              const vols=rows.map(x=>x.vol).filter(x=>x!=null);
+              const avgVol=vols.length?
+                vols.reduce((a,b)=>a+b,0)/vols.length:null;
 
               const first=rows[0].close;
               const last=rows[rows.length-1].close;
 
               return {
                 avgVol,
-                trend20:
-                  last>first
-                    ?'up'
-                    :last<first
-                      ?'down'
-                      :'flat',
+                trend20:last>first?'up':last<first?'down':'flat',
                 history:rows.slice(-30)
               };
             }catch(e){
@@ -318,26 +220,15 @@ jobs:
             }));
 
             const candidates=[...rows]
-              .sort(
-                (a,b)=>(b.value||0)-(a.value||0)
-              )
+              .sort((a,b)=>(b.value||0)-(a.value||0))
               .slice(0,60);
 
             for(let i=0;i<candidates.length;i+=6){
               await Promise.all(
-                candidates
-                  .slice(i,i+6)
-                  .map(async x=>{
-                    Object.assign(
-                      x,
-                      await depth(x.insCode)
-                    );
-
-                    Object.assign(
-                      x,
-                      await history(x.insCode)
-                    );
-                  })
+                candidates.slice(i,i+6).map(async x=>{
+                  Object.assign(x,await depth(x.insCode));
+                  Object.assign(x,await history(x.insCode));
+                })
               );
             }
 
@@ -349,7 +240,6 @@ jobs:
               const j=await json(
                 'https://cdn.tsetmc.com/api/MarketData/GetMarketOverview/0'
               );
-
               return j.marketOverview||j;
             }catch(e){
               return null;
@@ -357,9 +247,7 @@ jobs:
           }
 
           async function stocks(){
-            const rows=await enrich(
-              await marketWatch()
-            );
+            const rows=await enrich(await marketWatch());
 
             const payload={
               source:'TSETMC CDN snapshot via GitHub Actions',
@@ -383,7 +271,6 @@ jobs:
           async function commodity(){
             const candidates=[
               'https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?market=1&industrialGroup=&paperTypes%5B0%5D=8&showTraded=false&withBestLimits=true&hEven=0&RefID=0',
-
               'https://cdn.tsetmc.com/api/Instrument/GetInstrumentOptionMarketWatch/1'
             ];
 
@@ -392,49 +279,31 @@ jobs:
             for(const u of candidates){
               try{
                 const j=await json(u);
-
-                const a=Array.isArray(j)
-                  ?j
-                  :(j.marketwatch||
-                    j.instrumentOptionMarketWatch||
-                    []);
+                const a=Array.isArray(j)?
+                  j:
+                  (j.marketwatch||j.instrumentOptionMarketWatch||[]);
 
                 rows.push(
-                  ...a
-                    .map(norm)
-                    .filter(
-                      x=>x.symbol&&x.last!=null
-                    )
+                  ...a.map(norm).filter(x=>x.symbol&&x.last!=null)
                 );
               }catch(e){
-                console.warn(
-                  'commodity source failed',
-                  e.message
-                );
+                console.warn('commodity source failed',e.message);
               }
             }
 
             const uniq=new Map(
-              rows.map(
-                x=>[
-                  (x.insCode||x.symbol)+'',
-                  x
-                ]
-              )
+              rows.map(x=>[(x.insCode||x.symbol)+'',x])
             );
 
             rows=[...uniq.values()];
 
             if(!rows.length)
-              throw new Error(
-                'empty commodity sources'
-              );
+              throw new Error('empty commodity sources');
 
             fs.writeFileSync(
               path.join(BASE,'commodities.json'),
               JSON.stringify({
-                source:
-                  'TSETMC market=1/paperType=8 + option market snapshot via GitHub Actions',
+                source:'TSETMC market=1/paperType=8 + option market snapshot via GitHub Actions',
                 timestamp:Date.now(),
                 live:false,
                 upstreamOk:true,
@@ -451,29 +320,17 @@ jobs:
             let ok=0;
 
             try{
-              console.log(
-                'stocks',
-                await stocks()
-              );
+              console.log('stocks',await stocks());
               ok++;
             }catch(e){
-              console.error(
-                'stocks failed',
-                e
-              );
+              console.error('stocks failed',e);
             }
 
             try{
-              console.log(
-                'commodities',
-                await commodity()
-              );
+              console.log('commodities',await commodity());
               ok++;
             }catch(e){
-              console.error(
-                'commodities failed',
-                e
-              );
+              console.error('commodities failed',e);
             }
 
             if(!ok)
@@ -490,19 +347,16 @@ jobs:
       - name: Validate snapshots
         run: |
           test -s radar-data/stocks.json
-          test -s radar-data/commodities.json
-          node -e "const fs=require('fs'); for(const f of ['radar-data/stocks.json','radar-data/commodities.json']) { const j=JSON.parse(fs.readFileSync(f,'utf8')); console.log(f, 'items=',Array.isArray(j.items)?j.items.length:0, 'timestamp=',j.timestamp, 'source=',j.source); }"
+          node -e "const fs=require('fs'); for(const f of ['radar-data/stocks.json','radar-data/commodities.json']) { if(fs.existsSync(f)){ const j=JSON.parse(fs.readFileSync(f,'utf8')); console.log(f, 'items=',Array.isArray(j.items)?j.items.length:0, 'timestamp=',j.timestamp, 'source=',j.source); }}"
 
       - name: Commit updated radar data
         run: |
           git config user.name 'MJK Radar Bot'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add radar-data/stocks.json radar-data/commodities.json
-
           if git diff --cached --quiet; then
             echo 'No radar changes to commit.'
             exit 0
           fi
-
           git commit -m 'chore: update MJK radar data [skip ci]'
           git push
