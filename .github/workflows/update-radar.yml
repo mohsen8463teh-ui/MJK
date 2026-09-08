@@ -1,0 +1,563 @@
+name: Update MJK Market Radar
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mjk-radar-update
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install radar updater
+        run: |
+          mkdir -p scripts radar-data
+          cat > scripts/update-radar.js <<'NODE'
+const fs=require('fs');
+const path=require('path');
+const https=require('https');
+
+const BASE=path.join(process.cwd(),'radar-data');
+fs.mkdirSync(BASE,{recursive:true});
+
+const HEADERS={
+  'User-Agent':'MJK-Radar-Updater/1.0 (+https://github.com/mohsen8463teh-ui/MJK)',
+  'Accept':'application/json,text/plain,*/*',
+  'Accept-Language':'fa-IR,fa;q=0.9,en;q=0.7',
+  'Referer':'https://www.tsetmc.com/',
+  'Origin':'https://www.tsetmc.com'
+};
+
+function get(url,headers={}){
+  return new Promise((resolve,reject)=>{
+    const u=new URL(url);
+    const req=https.get(
+      u,
+      {headers:{...HEADERS,...headers},timeout:20000},
+      res=>{
+        let b='';
+        res.setEncoding('utf8');
+        res.on('data',x=>b+=x);
+        res.on('end',()=>{
+          if(res.statusCode<200||res.statusCode>=300)
+            return reject(new Error(`HTTP ${res.statusCode} ${url}`));
+          resolve(b);
+        });
+      }
+    );
+    req.on('error',reject);
+    req.on('timeout',()=>req.destroy(new Error('timeout')));
+  });
+}
+
+async function json(url){
+  const t=await get(url);
+  try{
+    return JSON.parse(t);
+  }catch(e){
+    throw new Error('invalid JSON: '+e.message);
+  }
+}
+
+function num(v){
+  if(v&&typeof v==='object')
+    v=v.value??v.Value??v.val??v.amount??v.Amount;
+
+  const n=Number(String(v??'').replace(/,/g,''));
+  return Number.isFinite(n)?n:null;
+}
+
+function norm(x){
+  const last=num(x.pDrCotVal??x.lastPrice??x.pl);
+  const prev=num(x.priceYesterday??x.yesterdayPrice??x.py);
+
+  return {
+    insCode:String(x.insCode??x.InsCode??''),
+    isin:String(x.instrumentId??x.InstrumentId??x.cIsin??''),
+    symbol:String(
+      x.lVal18AFC??
+      x.lVal18??
+      x.instrumentName??
+      x.symbol??
+      ''
+    ),
+    name:String(
+      x.lVal30??
+      x.companyNamePersian??
+      x.companyName??
+      x.instrumentName??
+      ''
+    ),
+    last,
+    close:num(x.pClosing??x.closingPrice??x.pc),
+    prev,
+    change:num(x.changePercent??x.pct) ??
+      (prev?((last-prev)/prev*100):null),
+    vol:num(x.qTotTran5J??x.tradeVolume??x.volume),
+    value:num(x.qTotCap??x.tradeValue??x.value),
+    trades:num(x.zTotTran??x.tradeCount),
+    eps:num(x.eps),
+    pe:num(x.pe),
+    flow:num(x.flow),
+    state:String(x.stateName??x.state??''),
+    hEven:x.hEven??x.lastTradeTime??null
+  };
+}
+
+async function marketWatch(){
+
+  const u=
+    'https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch' +
+    '?market=0' +
+    '&industrialGroup=' +
+    '&paperTypes%5B0%5D=1' +
+    '&paperTypes%5B1%5D=2' +
+    '&paperTypes%5B2%5D=3' +
+    '&paperTypes%5B3%5D=4' +
+    '&paperTypes%5B4%5D=5' +
+    '&paperTypes%5B5%5D=6' +
+    '&paperTypes%5B6%5D=7' +
+    '&paperTypes%5B7%5D=8' +
+    '&paperTypes%5B8%5D=9' +
+    '&showTraded=false' +
+    '&withBestLimits=true' +
+    '&hEven=0' +
+    '&RefID=0';
+
+  const j=await json(u);
+
+  const a=Array.isArray(j)
+    ? j
+    : (j.marketwatch||[]);
+
+  const rows=a
+    .map(norm)
+    .filter(x=>x.symbol&&x.last!=null);
+
+  if(!rows.length)
+    throw new Error('empty stock marketwatch');
+
+  return rows;
+}
+
+async function clientAll(){
+
+  try{
+
+    const j=await json(
+      'https://cdn.tsetmc.com/api/ClientType/GetClientTypeAll'
+    );
+
+    const a=j.clientTypeAllDto||[];
+    const m=new Map();
+
+    for(const x of a){
+
+      const id=String(
+        x.insCode??
+        x.InsCode??
+        ''
+      );
+
+      if(id){
+
+        m.set(id,{
+          naturalBuy:num(x.buy_I_Volume),
+          legalBuy:num(x.buy_N_Volume),
+          naturalSell:num(x.sell_I_Volume),
+          legalSell:num(x.sell_N_Volume),
+          naturalBuyCount:num(x.buy_I_Count),
+          legalBuyCount:num(x.buy_N_Count),
+          naturalSellCount:num(x.sell_I_Count),
+          legalSellCount:num(x.sell_N_Count)
+        });
+
+      }
+
+    }
+
+    return m;
+
+  }catch(e){
+
+    console.warn(
+      'client type unavailable',
+      e.message
+    );
+
+    return new Map();
+  }
+}
+
+async function depth(id){
+
+  try{
+
+    const j=await json(
+      'https://cdn.tsetmc.com/api/BestLimits/' +
+      encodeURIComponent(id)
+    );
+
+    const a=Array.isArray(j)
+      ? j
+      : (j.bestLimits||[]);
+
+    let bid=0;
+    let ask=0;
+    let bidOrders=0;
+    let askOrders=0;
+
+    for(const x of a){
+
+      const d=num(x.qTitMeDem);
+      const o=num(x.qTitMeOf);
+
+      if(d!=null){
+        bid+=d;
+        bidOrders+=num(x.zOrdMeDem)||0;
+      }
+
+      if(o!=null){
+        ask+=o;
+        askOrders+=num(x.zOrdMeOf)||0;
+      }
+
+    }
+
+    return {
+      bidDepth:bid||null,
+      askDepth:ask||null,
+      bidOrders:bidOrders||null,
+      askOrders:askOrders||null,
+      orderImbalance:
+        (bid||ask)
+          ? (bid-ask)/Math.max(1,bid+ask)
+          : null
+    };
+
+  }catch(e){
+
+    return {};
+
+  }
+}
+
+async function history(id){
+
+  try{
+
+    const j=await json(
+      'https://cdn.tsetmc.com/api/ClosingPrice/' +
+      'GetClosingPriceDailyList/' +
+      encodeURIComponent(id) +
+      '/30'
+    );
+
+    const a=Array.isArray(j)
+      ? j
+      : (j.closingPriceDaily||[]);
+
+    const rows=a
+      .map(x=>({
+        close:num(x.pClosing),
+        vol:num(x.qTotTran5J),
+        date:x.dEven
+      }))
+      .filter(x=>x.close!=null);
+
+    if(!rows.length)
+      return {};
+
+    const vols=rows
+      .map(x=>x.vol)
+      .filter(x=>x!=null);
+
+    const avgVol=vols.length
+      ? vols.reduce((a,b)=>a+b,0)/vols.length
+      : null;
+
+    const first=rows[0].close;
+    const last=rows[rows.length-1].close;
+
+    return {
+      avgVol,
+      trend20:
+        last>first
+          ? 'up'
+          : last<first
+            ? 'down'
+            : 'flat',
+      history:rows.slice(-30)
+    };
+
+  }catch(e){
+
+    return {};
+
+  }
+}
+
+async function enrich(rows){
+
+  const cm=await clientAll();
+
+  rows=rows.map(x=>({
+    ...x,
+    ...(cm.get(x.insCode)||{})
+  }));
+
+  const candidates=[
+    ...rows
+  ]
+  .sort((a,b)=>(b.value||0)-(a.value||0))
+  .slice(0,60);
+
+  for(let i=0;i<candidates.length;i+=6){
+
+    await Promise.all(
+      candidates
+        .slice(i,i+6)
+        .map(async x=>{
+
+          Object.assign(
+            x,
+            await depth(x.insCode)
+          );
+
+          Object.assign(
+            x,
+            await history(x.insCode)
+          );
+
+        })
+    );
+
+  }
+
+  return rows;
+}
+
+async function stockIndex(){
+
+  try{
+
+    const j=await json(
+      'https://cdn.tsetmc.com/api/MarketData/GetMarketOverview/0'
+    );
+
+    return j.marketOverview||j;
+
+  }catch(e){
+
+    return null;
+
+  }
+}
+
+async function stocks(){
+
+  const rows=await enrich(
+    await marketWatch()
+  );
+
+  const payload={
+    source:
+      'TSETMC CDN snapshot via GitHub Actions',
+
+    timestamp:Date.now(),
+
+    live:false,
+
+    upstreamOk:true,
+
+    marketStatus:'snapshot',
+
+    dataAgeSec:0,
+
+    items:rows,
+
+    marketOverview:
+      await stockIndex()
+  };
+
+  fs.writeFileSync(
+    path.join(BASE,'stocks.json'),
+    JSON.stringify(payload)
+  );
+
+  return rows.length;
+}
+
+async function commodity(){
+
+  const candidates=[
+
+    'https://cdn.tsetmc.com/api/ClosingPrice/' +
+    'GetMarketWatch?market=1&industrialGroup=' +
+    '&paperTypes%5B0%5D=8' +
+    '&showTraded=false' +
+    '&withBestLimits=true' +
+    '&hEven=0&RefID=0',
+
+    'https://cdn.tsetmc.com/api/Instrument/' +
+    'GetInstrumentOptionMarketWatch/1'
+
+  ];
+
+  let rows=[];
+
+  for(const u of candidates){
+
+    try{
+
+      const j=await json(u);
+
+      const a=Array.isArray(j)
+        ? j
+        : (
+          j.marketwatch||
+          j.instrumentOptionMarketWatch||
+          []
+        );
+
+      rows.push(
+        ...a
+          .map(norm)
+          .filter(x=>x.symbol&&x.last!=null)
+      );
+
+    }catch(e){
+
+      console.warn(
+        'commodity source failed',
+        e.message
+      );
+
+    }
+
+  }
+
+  const uniq=new Map(
+    rows.map(
+      x=>[
+        (x.insCode||x.symbol)+'',
+        x
+      ]
+    )
+  );
+
+  rows=[
+    ...uniq.values()
+  ];
+
+  if(!rows.length)
+    throw new Error(
+      'empty commodity sources'
+    );
+
+  fs.writeFileSync(
+    path.join(BASE,'commodities.json'),
+    JSON.stringify({
+      source:
+        'TSETMC market=1/paperType=8 + option market snapshot via GitHub Actions',
+
+      timestamp:Date.now(),
+
+      live:false,
+
+      upstreamOk:true,
+
+      marketStatus:'snapshot',
+
+      dataAgeSec:0,
+
+      items:rows
+    })
+  );
+
+  return rows.length;
+}
+
+(async()=>{
+
+  let ok=0;
+
+  try{
+
+    console.log(
+      'stocks',
+      await stocks()
+    );
+
+    ok++;
+
+  }catch(e){
+
+    console.error(
+      'stocks failed',
+      e
+    );
+
+  }
+
+  try{
+
+    console.log(
+      'commodities',
+      await commodity()
+    );
+
+    ok++;
+
+  }catch(e){
+
+    console.error(
+      'commodities failed',
+      e
+    );
+
+  }
+
+  if(!ok)
+    process.exit(1);
+
+})().catch(e=>{
+
+  console.error(e);
+  process.exit(1);
+
+});
+
+NODE
+
+      - name: Update TSETMC snapshots
+        run: node scripts/update-radar.js
+
+      - name: Validate snapshots
+        run: |
+          test -s radar-data/stocks.json
+          node -e "const fs=require('fs'); for(const f of ['radar-data/stocks.json','radar-data/commodities.json']) { if(fs.existsSync(f)){ const j=JSON.parse(fs.readFileSync(f,'utf8')); console.log(f, 'items=',Array.isArray(j.items)?j.items.length:0, 'timestamp=',j.timestamp, 'source=',j.source); }}"
+
+      - name: Commit updated radar data
+        run: |
+          git config user.name 'MJK Radar Bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add radar-data/stocks.json radar-data/commodities.json
+
+          if git diff --cached --quiet; then
+            echo 'No radar changes to commit.'
+            exit 0
+          fi
+
+          git commit -m 'chore: update MJK radar data [skip ci]'
+          git push
