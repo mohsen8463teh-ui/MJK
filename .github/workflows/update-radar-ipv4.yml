@@ -3,10 +3,10 @@ name: Update MJK Daily Market Radar
 on:
   workflow_dispatch:
 
-  # 12:45 Tehran = 09:15 UTC
-  # Trading days in Iran: Saturday through Wednesday
+  # 12:45 Tehran
+  # Saturday-Wednesday
   schedule:
-    - cron: '15 9 * * 0,1,2,3,6'
+    - cron: '15 9 * * 0-3,6'
 
 permissions:
   contents: write
@@ -16,11 +16,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  update-radar:
+  update:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Fetch TSETMC daily snapshot
@@ -28,111 +28,87 @@ jobs:
         run: |
           import json
           import os
-          import sys
           import time
           from datetime import datetime, timezone
           from zoneinfo import ZoneInfo
           from urllib.request import Request, urlopen
-          from urllib.error import HTTPError, URLError
 
           TEHRAN = ZoneInfo("Asia/Tehran")
           now_utc = datetime.now(timezone.utc)
           now_tehran = now_utc.astimezone(TEHRAN)
-
-          print("UTC:", now_utc.isoformat())
-          print("Tehran:", now_tehran.isoformat())
+          snapshot_date = now_tehran.strftime("%Y-%m-%d")
 
           HEADERS = {
-              "User-Agent": (
-                  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                  "AppleWebKit/537.36 Chrome/131.0 Safari/537.36"
-              ),
+              "User-Agent": "Mozilla/5.0",
               "Accept": "*/*",
-              "Accept-Encoding": "gzip, deflate",
+              "Accept-Language": "en-US,en;q=0.9",
               "Connection": "close",
           }
 
-          # Legacy TSETMC endpoint.
-          # Try multiple host variants so a temporary host issue
-          # does not immediately kill the snapshot.
-          URLS = [
+          MARKET_URLS = [
               "http://old.tsetmc.com/tsev2/data/MarketWatchInit.aspx?h=0&r=0",
-              "https://old.tsetmc.com/tsev2/data/MarketWatchInit.aspx?h=0&r=0",
               "http://www.tsetmc.com/tsev2/data/MarketWatchInit.aspx?h=0&r=0",
           ]
 
           CLIENT_URLS = [
               "http://old.tsetmc.com/tsev2/data/ClientTypeAll.aspx",
-              "https://old.tsetmc.com/tsev2/data/ClientTypeAll.aspx",
               "http://www.tsetmc.com/tsev2/data/ClientTypeAll.aspx",
           ]
 
           def fetch(url, timeout=45):
-              req = Request(url, headers=HEADERS, method="GET")
+              req = Request(url, headers=HEADERS)
               with urlopen(req, timeout=timeout) as response:
-                  raw = response.read()
-                  return raw.decode("utf-8-sig", errors="replace")
+                  data = response.read()
+                  return data.decode("utf-8-sig", errors="replace")
 
-          def fetch_with_retry(urls, name):
+          def fetch_any(urls, label):
               last_error = None
 
               for url in urls:
                   for attempt in range(3):
                       try:
-                          print(f"[{name}] {url} attempt {attempt + 1}/3")
+                          print(f"{label}: {url} attempt {attempt + 1}/3")
                           text = fetch(url)
 
-                          if not text or len(text) < 100:
-                              raise RuntimeError(
-                                  f"Empty/too-small response: {len(text)} bytes"
-                              )
+                          if len(text.strip()) < 100:
+                              raise RuntimeError("Empty or invalid response")
 
-                          print(f"[{name}] received {len(text)} bytes")
+                          print(f"{label}: received {len(text)} bytes")
                           return text, url
 
-                      except Exception as exc:
-                          last_error = exc
-                          print(f"[{name}] failed: {exc}")
+                      except Exception as e:
+                          last_error = e
+                          print(f"{label} failed: {e}")
                           time.sleep(3 * (attempt + 1))
 
               raise RuntimeError(
-                  f"{name} failed on all endpoints. Last error: {last_error}"
+                  f"{label} failed on all endpoints: {last_error}"
               )
 
-          def to_int(value):
-              if value is None:
-                  return None
-
-              value = str(value).strip()
-
-              if value == "":
-                  return None
-
+          def integer(value):
               try:
+                  value = str(value).strip()
+                  if value == "":
+                      return None
                   return int(float(value))
-              except Exception:
+              except:
                   return None
 
-          def to_float(value):
-              if value is None:
-                  return None
-
-              value = str(value).strip()
-
-              if value == "":
-                  return None
-
+          def number(value):
               try:
+                  value = str(value).strip()
+                  if value == "":
+                      return None
                   return float(value)
-              except Exception:
+              except:
                   return None
 
-          # ------------------------------------------------------------
-          # 1) MARKET WATCH
-          # ------------------------------------------------------------
+          # ============================================================
+          # MARKET WATCH
+          # ============================================================
 
-          raw_market, market_source = fetch_with_retry(
-              URLS,
+          raw_market, market_source = fetch_any(
+              MARKET_URLS,
               "MARKET-WATCH"
           )
 
@@ -140,71 +116,43 @@ jobs:
 
           if len(parts) < 5:
               raise RuntimeError(
-                  f"Unexpected MarketWatchInit response. Parts={len(parts)}"
+                  f"Unexpected MarketWatch response: {len(parts)} sections"
               )
 
-          market_state_raw = parts[1]
-          price_rows_raw = parts[2]
-          ref_id_raw = parts[4]
+          market_state = parts[1]
+          price_rows = parts[2]
+          ref_id = parts[4]
 
-          if not price_rows_raw.strip():
+          if not price_rows.strip():
               raise RuntimeError(
-                  "TSETMC returned an empty price table. "
-                  "Existing radar data will NOT be overwritten."
+                  "TSETMC returned an empty market table. "
+                  "Existing data will NOT be overwritten."
               )
-
-          # TSETMC price rows have 26 columns:
-          #
-          # 0 ins_code
-          # 1 isin
-          # 2 symbol
-          # 3 name
-          # 4 heven
-          # 5 pf
-          # 6 pc
-          # 7 pl
-          # 8 tno
-          # 9 tvol
-          # 10 tval
-          # 11 pmin
-          # 12 pmax
-          # 13 py
-          # 14 eps
-          # 15 bvol
-          # 16 visitcount
-          # 17 flow
-          # 18 cs
-          # 19 tmax
-          # 20 tmin
-          # 21 z
-          # 22 yval
-          # 23 predtran
-          # 24 buyop
-          # 25 cgrvalcot
 
           market = []
 
-          for raw_row in price_rows_raw.split(";"):
-              raw_row = raw_row.strip()
+          for row in price_rows.split(";"):
+              row = row.strip()
 
-              if not raw_row:
+              if not row:
                   continue
 
-              fields = raw_row.split(",")
+              fields = row.split(",")
 
               if len(fields) < 23:
                   continue
 
+              ins_code = fields[0].strip()
+              isin = fields[1].strip()
               symbol = fields[2].strip()
               name = fields[3].strip()
-              ins_code = fields[0].strip()
 
-              if not symbol or not ins_code:
+              if not ins_code or not symbol:
                   continue
 
-              previous = to_int(fields[13])
-              last_price = to_int(fields[7])
-              close_price = to_int(fields[6])
+              previous = integer(fields[13])
+              last_price = integer(fields[7])
+              close_price = integer(fields[6])
 
               change_percent = None
 
@@ -216,71 +164,73 @@ jobs:
 
               item = {
                   "insCode": ins_code,
-                  "isin": fields[1].strip(),
+                  "isin": isin,
                   "symbol": symbol,
                   "name": name,
-                  "lastTradeTime": fields[4].strip(),
 
-                  "open": to_int(fields[5]),
+                  "time": fields[4].strip(),
+
+                  "open": integer(fields[5]),
                   "close": close_price,
                   "last": last_price,
                   "yesterday": previous,
 
-                  "tradeCount": to_int(fields[8]),
-                  "volume": to_int(fields[9]),
-                  "value": to_int(fields[10]),
+                  "tradeCount": integer(fields[8]),
+                  "volume": integer(fields[9]),
+                  "value": integer(fields[10]),
 
-                  "low": to_int(fields[11]),
-                  "high": to_int(fields[12]),
+                  "low": integer(fields[11]),
+                  "high": integer(fields[12]),
 
-                  "eps": to_float(fields[14]),
-                  "baseVolume": to_int(fields[15]),
+                  "eps": number(fields[14]),
+                  "baseVolume": integer(fields[15]),
 
-                  "flow": to_int(fields[17]),
+                  "flow": integer(fields[17]),
+                  "marketGroup": fields[18].strip(),
 
-                  "maxAllowed": to_float(fields[19]),
-                  "minAllowed": to_float(fields[20]),
+                  "maxAllowed": number(fields[19]),
+                  "minAllowed": number(fields[20]),
 
-                  "shareCount": to_int(fields[21]),
+                  "shareCount": integer(fields[21]),
                   "symbolType": fields[22].strip(),
 
                   "changePercent": change_percent,
 
                   "source": "TSETMC",
+                  "snapshotDate": snapshot_date,
                   "snapshotTimeUTC": now_utc.isoformat(),
-                  "snapshotTimeTehran": now_tehran.isoformat(),
+                  "snapshotTimeTehran": now_tehran.isoformat()
               }
 
               market.append(item)
 
+          print("Total market rows:", len(market))
+
           if len(market) < 100:
               raise RuntimeError(
-                  f"Market snapshot suspiciously small: {len(market)} rows. "
-                  "Existing data will NOT be overwritten."
+                  f"Suspiciously small market snapshot: {len(market)}"
               )
 
-          print(f"Valid market rows: {len(market)}")
-
-          # ------------------------------------------------------------
-          # 2) CLIENT TYPE / حقیقی حقوقی
-          # ------------------------------------------------------------
+          # ============================================================
+          # CLIENT TYPE - حقیقی / حقوقی
+          # ============================================================
 
           client_map = {}
           client_source = None
 
           try:
-              raw_client, client_source = fetch_with_retry(
+              raw_client, client_source = fetch_any(
                   CLIENT_URLS,
                   "CLIENT-TYPE"
               )
 
-              for raw_row in raw_client.split(";"):
-                  raw_row = raw_row.strip()
+              for row in raw_client.split(";"):
+                  row = row.strip()
 
-                  if not raw_row:
+                  if not row:
                       continue
 
-                  fields = raw_row.split(",")
+                  fields = row.split(",")
 
                   if len(fields) < 9:
                       continue
@@ -291,86 +241,78 @@ jobs:
                       continue
 
                   client_map[ins_code] = {
-                      "naturalBuyCount": to_int(fields[1]),
-                      "legalBuyCount": to_int(fields[2]),
-                      "naturalBuyVolume": to_int(fields[3]),
-                      "legalBuyVolume": to_int(fields[4]),
-                      "naturalSellCount": to_int(fields[5]),
-                      "legalSellCount": to_int(fields[6]),
-                      "naturalSellVolume": to_int(fields[7]),
-                      "legalSellVolume": to_int(fields[8]),
+                      "naturalBuyCount": integer(fields[1]),
+                      "legalBuyCount": integer(fields[2]),
+                      "naturalBuyVolume": integer(fields[3]),
+                      "legalBuyVolume": integer(fields[4]),
+                      "naturalSellCount": integer(fields[5]),
+                      "legalSellCount": integer(fields[6]),
+                      "naturalSellVolume": integer(fields[7]),
+                      "legalSellVolume": integer(fields[8])
                   }
 
-              print(f"Client-type rows: {len(client_map)}")
+              print("Client type rows:", len(client_map))
 
-          except Exception as exc:
-              # Client type is supplementary.
-              # Do NOT destroy an otherwise valid market snapshot.
-              print("WARNING: ClientType unavailable:", exc)
+          except Exception as e:
+              print("WARNING: ClientType unavailable:", e)
 
-          # Merge client type into market rows.
+          # Merge حقیقی/حقوقی data
           for item in market:
-              ct = client_map.get(item["insCode"])
 
-              if ct:
-                  item["clientType"] = ct
+              client = client_map.get(item["insCode"])
 
-                  nbv = ct["naturalBuyVolume"] or 0
-                  lbv = ct["legalBuyVolume"] or 0
-                  nsv = ct["naturalSellVolume"] or 0
-                  lsv = ct["legalSellVolume"] or 0
+              if client:
 
-                  item["naturalNetVolume"] = nbv - nsv
-                  item["legalNetVolume"] = lbv - lsv
-
+                  item["clientType"] = client
                   item["clientTypeAvailable"] = True
+
+                  natural_net = (
+                      (client["naturalBuyVolume"] or 0)
+                      -
+                      (client["naturalSellVolume"] or 0)
+                  )
+
+                  legal_net = (
+                      (client["legalBuyVolume"] or 0)
+                      -
+                      (client["legalSellVolume"] or 0)
+                  )
+
+                  item["naturalNetVolume"] = natural_net
+                  item["legalNetVolume"] = legal_net
+
               else:
+
                   item["clientType"] = None
+                  item["clientTypeAvailable"] = False
                   item["naturalNetVolume"] = None
                   item["legalNetVolume"] = None
-                  item["clientTypeAvailable"] = False
 
-          # ------------------------------------------------------------
-          # 3) MARKET FILTER
-          # ------------------------------------------------------------
+          # ============================================================
+          # STOCK UNIVERSE
+          # ============================================================
 
-          # flow:
-          # 1 = بورس
-          # 2 = فرابورس
-          # 4 = بازار پایه
-          #
-          # Keep only these for the stock radar.
           stocks = [
-              x for x in market
-              if x.get("flow") in (1, 2, 4)
+              item for item in market
+              if item.get("flow") in (1, 2, 4)
           ]
+
+          print("Stock rows:", len(stocks))
 
           if len(stocks) < 50:
               raise RuntimeError(
-                  f"Filtered stock universe is suspiciously small: {len(stocks)}"
+                  f"Suspicious stock count: {len(stocks)}"
               )
 
-          # ------------------------------------------------------------
-          # 4) MARKET OVERVIEW
-          # ------------------------------------------------------------
-
-          overview = {
-              "rawMarketState": market_state_raw,
-              "refId": ref_id_raw,
-              "totalMarketRows": len(market),
-              "stockRows": len(stocks),
-          }
-
-          # ------------------------------------------------------------
-          # 5) SNAPSHOT OBJECT
-          # ------------------------------------------------------------
-
-          snapshot_date = now_tehran.strftime("%Y-%m-%d")
+          # ============================================================
+          # SNAPSHOT
+          # ============================================================
 
           snapshot = {
-              "schemaVersion": 2,
+              "schemaVersion": 3,
               "market": "iran",
               "marketName": "TSETMC",
+
               "snapshotDate": snapshot_date,
               "snapshotTimeUTC": now_utc.isoformat(),
               "snapshotTimeTehran": now_tehran.isoformat(),
@@ -379,32 +321,34 @@ jobs:
 
               "source": {
                   "marketWatch": market_source,
-                  "clientType": client_source,
+                  "clientType": client_source
               },
 
               "dataIntegrity": {
                   "lookaheadUsed": False,
                   "fabricatedValues": False,
-                  "marketWatchRows": len(market),
+                  "marketRows": len(market),
                   "stockRows": len(stocks),
-                  "clientTypeRows": len(client_map),
+                  "clientTypeRows": len(client_map)
               },
 
-              "overview": overview,
+              "marketState": market_state,
+              "refId": ref_id,
 
-              "items": stocks,
+              "items": stocks
           }
 
-          # ------------------------------------------------------------
-          # 6) WRITE FILES
-          # ------------------------------------------------------------
+          # ============================================================
+          # WRITE FILES
+          # ============================================================
 
           os.makedirs("radar-data/daily", exist_ok=True)
 
-          latest_file = "radar-data/stocks.json"
-          daily_file = f"radar-data/daily/{snapshot_date}.json"
-
-          with open(latest_file, "w", encoding="utf-8") as f:
+          with open(
+              "radar-data/stocks.json",
+              "w",
+              encoding="utf-8"
+          ) as f:
               json.dump(
                   snapshot,
                   f,
@@ -412,7 +356,15 @@ jobs:
                   separators=(",", ":")
               )
 
-          with open(daily_file, "w", encoding="utf-8") as f:
+          daily_path = (
+              f"radar-data/daily/{snapshot_date}.json"
+          )
+
+          with open(
+              daily_path,
+              "w",
+              encoding="utf-8"
+          ) as f:
               json.dump(
                   snapshot,
                   f,
@@ -420,9 +372,9 @@ jobs:
                   separators=(",", ":")
               )
 
-          # Commodities are deliberately NOT fabricated.
+          # No fabricated commodity data.
           commodities = {
-              "schemaVersion": 2,
+              "schemaVersion": 1,
               "market": "iran",
               "snapshotDate": snapshot_date,
               "snapshotTimeUTC": now_utc.isoformat(),
@@ -442,39 +394,53 @@ jobs:
                   separators=(",", ":")
               )
 
-          print("Created:", latest_file)
-          print("Created:", daily_file)
-          print("Created:", "radar-data/commodities.json")
-          print("FINAL STOCK COUNT:", len(stocks))
+          print("======================================")
+          print("MJK DAILY SNAPSHOT CREATED")
+          print("Date:", snapshot_date)
+          print("Market rows:", len(market))
+          print("Stocks:", len(stocks))
+          print("Client type:", len(client_map))
+          print("Daily file:", daily_path)
+          print("======================================")
 
-      - name: Validate snapshot
-        shell: bash
+      - name: Validate snapshots
+        shell: python
         run: |
-          set -e
-
-          test -s radar-data/stocks.json
-          test -s radar-data/commodities.json
-
-          python - <<'PY'
           import json
           import glob
 
-          with open("radar-data/stocks.json", encoding="utf-8") as f:
+          with open(
+              "radar-data/stocks.json",
+              encoding="utf-8"
+          ) as f:
               data = json.load(f)
 
-          assert data["dataStatus"] == "VALID"
-          assert data["dataIntegrity"]["fabricatedValues"] is False
-          assert len(data["items"]) >= 50
+          if data.get("dataStatus") != "VALID":
+              raise RuntimeError("Snapshot is not VALID")
 
-          files = glob.glob("radar-data/daily/*.json")
-          assert files, "No daily snapshot created"
+          if data["dataIntegrity"]["fabricatedValues"]:
+              raise RuntimeError("Fabricated data detected")
 
-          print("Validation OK")
+          if data["dataIntegrity"]["lookaheadUsed"]:
+              raise RuntimeError("Lookahead detected")
+
+          if len(data.get("items", [])) < 50:
+              raise RuntimeError("Too few stock rows")
+
+          daily_files = glob.glob(
+              "radar-data/daily/*.json"
+          )
+
+          if not daily_files:
+              raise RuntimeError(
+                  "No daily snapshot found"
+              )
+
+          print("VALIDATION OK")
           print("Stocks:", len(data["items"]))
-          print("Daily snapshots:", len(files))
-          PY
+          print("Daily snapshots:", len(daily_files))
 
-      - name: Commit and push
+      - name: Commit updated radar data
         shell: bash
         run: |
           git config user.name "MJK Radar Bot"
@@ -485,7 +451,7 @@ jobs:
           git add radar-data/daily/
 
           if git diff --cached --quiet; then
-            echo "No changes to commit."
+            echo "No radar changes to commit."
             exit 0
           fi
 
