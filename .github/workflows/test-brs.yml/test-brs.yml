@@ -1,4 +1,4 @@
-name: TEST BRS API
+name: BRS API VERIFY
 
 on:
   workflow_dispatch:
