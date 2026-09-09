@@ -1,80 +1,493 @@
-name: Update MJK Market Radar
+name: Update MJK Daily Market Radar
 
 on:
   workflow_dispatch:
+
+  # 12:45 Tehran = 09:15 UTC
+  # Trading days in Iran: Saturday through Wednesday
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '15 9 * * 0,1,2,3,6'
 
 permissions:
   contents: write
 
 concurrency:
-  group: mjk-radar-update
-  cancel-in-progress: true
+  group: mjk-daily-radar
+  cancel-in-progress: false
 
 jobs:
-  update:
+  update-radar:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-
-      - name: Install radar updater
+      - name: Fetch TSETMC daily snapshot
+        shell: python
         run: |
-          mkdir -p scripts radar-data
-          cat > scripts/update-radar.js <<'NODE'
-          const fs=require('fs');
-          const path=require('path');
-          const https=require('https');
-          const dns=require('dns');
-          dns.setDefaultResultOrder('ipv4first');
-          const BASE=path.join(process.cwd(),'radar-data');
-          fs.mkdirSync(BASE,{recursive:true});
-          const HEADERS={
-            'User-Agent':'MJK-Radar-Updater/1.0 (+https://github.com/mohsen8463teh-ui/MJK)',
-            'Accept':'application/json,text/plain,*/*',
-            'Accept-Language':'fa-IR,fa;q=0.9,en;q=0.7',
-            'Referer':'https://www.tsetmc.com/',
-            'Origin':'https://www.tsetmc.com'
-          };
-          async function get(url,headers={}){let last;for(let attempt=1;attempt<=3;attempt++){try{return await new Promise((resolve,reject)=>{const u=new URL(url);const req=https.get(u,{family:4,headers:{...HEADERS,...headers},timeout:45000},res=>{let b='';res.setEncoding('utf8');res.on('data',x=>b+=x);res.on('end',()=>{if(res.statusCode<200||res.statusCode>=300)return reject(new Error(`HTTP ${res.statusCode} ${url}`));resolve(b)})});req.on('error',reject);req.on('timeout',()=>req.destroy(new Error('timeout')))});}catch(e){last=e;console.warn(`GET attempt ${attempt}/3 failed: ${url} -> ${e.message}`);if(attempt<3)await new Promise(r=>setTimeout(r,1500*attempt));}}throw last;}
-          async function json(url){const t=await get(url);try{return JSON.parse(t)}catch(e){throw new Error('invalid JSON: '+e.message)}}
-          function arrays(x,out=[]){if(!x||typeof x!=='object')return out;if(Array.isArray(x)){if(x.length&&typeof x[0]==='object')out.push(x);for(const v of x.slice(0,8))arrays(v,out);return out}for(const v of Object.values(x))arrays(v,out);return out}
-          function num(v){if(v&&typeof v==='object')v=v.value??v.Value??v.val??v.amount??v.Amount;const n=Number(String(v??'').replace(/,/g,''));return Number.isFinite(n)?n:null}
-          function norm(x){const last=num(x.pDrCotVal??x.lastPrice??x.pl),prev=num(x.priceYesterday??x.yesterdayPrice??x.py);return {insCode:String(x.insCode??x.InsCode??''),isin:String(x.instrumentId??x.InstrumentId??x.cIsin??''),symbol:String(x.lVal18AFC??x.lVal18??x.instrumentName??x.symbol??''),name:String(x.lVal30??x.companyNamePersian??x.companyName??x.instrumentName??''),last,close:num(x.pClosing??x.closingPrice??x.pc),prev,change:num(x.changePercent??x.pct)??(prev?((last-prev)/prev*100):null),vol:num(x.qTotTran5J??x.tradeVolume??x.volume),value:num(x.qTotCap??x.tradeValue??x.value),trades:num(x.zTotTran??x.tradeCount),eps:num(x.eps),pe:num(x.pe),flow:num(x.flow),state:String(x.stateName??x.state??''),hEven:x.hEven??x.lastTradeTime??null};}
-          async function marketWatch(){
-           const u='https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?market=0&industrialGroup=&paperTypes%5B0%5D=1&paperTypes%5B1%5D=2&paperTypes%5B2%5D=3&paperTypes%5B3%5D=4&paperTypes%5B4%5D=5&paperTypes%5B5%5D=6&paperTypes%5B6%5D=7&paperTypes%5B7%5D=8&paperTypes%5B8%5D=9&showTraded=false&withBestLimits=true&hEven=0&RefID=0';
-           const j=await json(u); const a=Array.isArray(j)?j:(j.marketwatch||[]); const rows=a.map(norm).filter(x=>x.symbol&&x.last!=null); if(!rows.length)throw new Error('empty stock marketwatch'); return rows;
+          import json
+          import os
+          import sys
+          import time
+          from datetime import datetime, timezone
+          from zoneinfo import ZoneInfo
+          from urllib.request import Request, urlopen
+          from urllib.error import HTTPError, URLError
+
+          TEHRAN = ZoneInfo("Asia/Tehran")
+          now_utc = datetime.now(timezone.utc)
+          now_tehran = now_utc.astimezone(TEHRAN)
+
+          print("UTC:", now_utc.isoformat())
+          print("Tehran:", now_tehran.isoformat())
+
+          HEADERS = {
+              "User-Agent": (
+                  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                  "AppleWebKit/537.36 Chrome/131.0 Safari/537.36"
+              ),
+              "Accept": "*/*",
+              "Accept-Encoding": "gzip, deflate",
+              "Connection": "close",
           }
-          async function clientAll(){try{const j=await json('https://cdn.tsetmc.com/api/ClientType/GetClientTypeAll');const a=j.clientTypeAllDto||[];const m=new Map();for(const x of a){const id=String(x.insCode??x.InsCode??'');if(id)m.set(id,{naturalBuy:num(x.buy_I_Volume),legalBuy:num(x.buy_N_Volume),naturalSell:num(x.sell_I_Volume),legalSell:num(x.sell_N_Volume),naturalBuyCount:num(x.buy_I_Count),legalBuyCount:num(x.buy_N_Count),naturalSellCount:num(x.sell_I_Count),legalSellCount:num(x.sell_N_Count)});}return m}catch(e){console.warn('client type unavailable',e.message);return new Map();}}
-          async function depth(id){try{const j=await json('https://cdn.tsetmc.com/api/BestLimits/'+encodeURIComponent(id));const a=Array.isArray(j)?j:(j.bestLimits||[]);let bid=0,ask=0,bidOrders=0,askOrders=0;for(const x of a){const d=num(x.qTitMeDem),o=num(x.qTitMeOf);if(d!=null){bid+=d;bidOrders+=num(x.zOrdMeDem)||0}if(o!=null){ask+=o;askOrders+=num(x.zOrdMeOf)||0}}return {bidDepth:bid||null,askDepth:ask||null,bidOrders:bidOrders||null,askOrders:askOrders||null,orderImbalance:(bid||ask)?(bid-ask)/Math.max(1,bid+ask):null}}catch(e){return {}}}
-          async function history(id){try{const j=await json('https://cdn.tsetmc.com/api/ClosingPrice/GetClosingPriceDailyList/'+encodeURIComponent(id)+'/30');const a=Array.isArray(j)?j:(j.closingPriceDaily||[]);const rows=a.map(x=>({close:num(x.pClosing),vol:num(x.qTotTran5J),date:x.dEven})).filter(x=>x.close!=null);if(!rows.length)return {};const vols=rows.map(x=>x.vol).filter(x=>x!=null);const avgVol=vols.length?vols.reduce((a,b)=>a+b,0)/vols.length:null;const first=rows[0].close,last=rows[rows.length-1].close;return {avgVol,trend20:last>first?'up':last<first?'down':'flat',history:rows.slice(-30)}}catch(e){return {}}}
-          async function enrich(rows){const cm=await clientAll();rows=rows.map(x=>({...x,...(cm.get(x.insCode)||{})}));const candidates=[...rows].sort((a,b)=>(b.value||0)-(a.value||0)).slice(0,60);for(let i=0;i<candidates.length;i+=6){await Promise.all(candidates.slice(i,i+6).map(async x=>{Object.assign(x,await depth(x.insCode));Object.assign(x,await history(x.insCode));}));}return rows;}
-          async function stockIndex(){try{const j=await json('https://cdn.tsetmc.com/api/MarketData/GetMarketOverview/0');return j.marketOverview||j}catch(e){return null}}
-          async function stocks(){const all=await marketWatch();const rows=await enrich(all.filter(x=>x.flow!==7&&x.flow!==6));if(!rows.length)throw new Error('empty stock rows after flow filter');const payload={schemaVersion:2,source:'TSETMC CDN snapshot via GitHub Actions (IPv4)',timestamp:Date.now(),live:false,upstreamOk:true,marketStatus:'snapshot',dataAgeSec:0,items:rows,marketOverview:await stockIndex()};fs.writeFileSync(path.join(BASE,'stocks.json'),JSON.stringify(payload));return rows.length}
-          async function commodity(){const all=await marketWatch();const rows=all.filter(x=>x.flow===7);if(!rows.length)throw new Error('TSETMC marketwatch returned no flow=7 commodity instruments');fs.writeFileSync(path.join(BASE,'commodities.json'),JSON.stringify({schemaVersion:2,source:'TSETMC CDN MarketWatch flow=7 snapshot via GitHub Actions (IPv4)',timestamp:Date.now(),live:false,upstreamOk:true,marketStatus:'snapshot',dataAgeSec:0,items:rows}));return rows.length}
-          (async()=>{let stockCount=0,commodityCount=0;try{stockCount=await stocks();console.log('stocks',stockCount)}catch(e){console.error('stocks failed',e)}try{commodityCount=await commodity();console.log('commodities',commodityCount)}catch(e){console.error('commodities failed',e)}if(!stockCount||!commodityCount)process.exit(1)})().catch(e=>{console.error(e);process.exit(1)});
-          
-          NODE
 
-      - name: Update TSETMC snapshots
-        run: node scripts/update-radar.js
+          # Legacy TSETMC endpoint.
+          # Try multiple host variants so a temporary host issue
+          # does not immediately kill the snapshot.
+          URLS = [
+              "http://old.tsetmc.com/tsev2/data/MarketWatchInit.aspx?h=0&r=0",
+              "https://old.tsetmc.com/tsev2/data/MarketWatchInit.aspx?h=0&r=0",
+              "http://www.tsetmc.com/tsev2/data/MarketWatchInit.aspx?h=0&r=0",
+          ]
 
-      - name: Validate snapshots
+          CLIENT_URLS = [
+              "http://old.tsetmc.com/tsev2/data/ClientTypeAll.aspx",
+              "https://old.tsetmc.com/tsev2/data/ClientTypeAll.aspx",
+              "http://www.tsetmc.com/tsev2/data/ClientTypeAll.aspx",
+          ]
+
+          def fetch(url, timeout=45):
+              req = Request(url, headers=HEADERS, method="GET")
+              with urlopen(req, timeout=timeout) as response:
+                  raw = response.read()
+                  return raw.decode("utf-8-sig", errors="replace")
+
+          def fetch_with_retry(urls, name):
+              last_error = None
+
+              for url in urls:
+                  for attempt in range(3):
+                      try:
+                          print(f"[{name}] {url} attempt {attempt + 1}/3")
+                          text = fetch(url)
+
+                          if not text or len(text) < 100:
+                              raise RuntimeError(
+                                  f"Empty/too-small response: {len(text)} bytes"
+                              )
+
+                          print(f"[{name}] received {len(text)} bytes")
+                          return text, url
+
+                      except Exception as exc:
+                          last_error = exc
+                          print(f"[{name}] failed: {exc}")
+                          time.sleep(3 * (attempt + 1))
+
+              raise RuntimeError(
+                  f"{name} failed on all endpoints. Last error: {last_error}"
+              )
+
+          def to_int(value):
+              if value is None:
+                  return None
+
+              value = str(value).strip()
+
+              if value == "":
+                  return None
+
+              try:
+                  return int(float(value))
+              except Exception:
+                  return None
+
+          def to_float(value):
+              if value is None:
+                  return None
+
+              value = str(value).strip()
+
+              if value == "":
+                  return None
+
+              try:
+                  return float(value)
+              except Exception:
+                  return None
+
+          # ------------------------------------------------------------
+          # 1) MARKET WATCH
+          # ------------------------------------------------------------
+
+          raw_market, market_source = fetch_with_retry(
+              URLS,
+              "MARKET-WATCH"
+          )
+
+          parts = raw_market.split("@")
+
+          if len(parts) < 5:
+              raise RuntimeError(
+                  f"Unexpected MarketWatchInit response. Parts={len(parts)}"
+              )
+
+          market_state_raw = parts[1]
+          price_rows_raw = parts[2]
+          ref_id_raw = parts[4]
+
+          if not price_rows_raw.strip():
+              raise RuntimeError(
+                  "TSETMC returned an empty price table. "
+                  "Existing radar data will NOT be overwritten."
+              )
+
+          # TSETMC price rows have 26 columns:
+          #
+          # 0 ins_code
+          # 1 isin
+          # 2 symbol
+          # 3 name
+          # 4 heven
+          # 5 pf
+          # 6 pc
+          # 7 pl
+          # 8 tno
+          # 9 tvol
+          # 10 tval
+          # 11 pmin
+          # 12 pmax
+          # 13 py
+          # 14 eps
+          # 15 bvol
+          # 16 visitcount
+          # 17 flow
+          # 18 cs
+          # 19 tmax
+          # 20 tmin
+          # 21 z
+          # 22 yval
+          # 23 predtran
+          # 24 buyop
+          # 25 cgrvalcot
+
+          market = []
+
+          for raw_row in price_rows_raw.split(";"):
+              raw_row = raw_row.strip()
+
+              if not raw_row:
+                  continue
+
+              fields = raw_row.split(",")
+
+              if len(fields) < 23:
+                  continue
+
+              symbol = fields[2].strip()
+              name = fields[3].strip()
+              ins_code = fields[0].strip()
+
+              if not symbol or not ins_code:
+                  continue
+
+              previous = to_int(fields[13])
+              last_price = to_int(fields[7])
+              close_price = to_int(fields[6])
+
+              change_percent = None
+
+              if previous not in (None, 0) and last_price is not None:
+                  change_percent = round(
+                      ((last_price - previous) / previous) * 100,
+                      4
+                  )
+
+              item = {
+                  "insCode": ins_code,
+                  "isin": fields[1].strip(),
+                  "symbol": symbol,
+                  "name": name,
+                  "lastTradeTime": fields[4].strip(),
+
+                  "open": to_int(fields[5]),
+                  "close": close_price,
+                  "last": last_price,
+                  "yesterday": previous,
+
+                  "tradeCount": to_int(fields[8]),
+                  "volume": to_int(fields[9]),
+                  "value": to_int(fields[10]),
+
+                  "low": to_int(fields[11]),
+                  "high": to_int(fields[12]),
+
+                  "eps": to_float(fields[14]),
+                  "baseVolume": to_int(fields[15]),
+
+                  "flow": to_int(fields[17]),
+
+                  "maxAllowed": to_float(fields[19]),
+                  "minAllowed": to_float(fields[20]),
+
+                  "shareCount": to_int(fields[21]),
+                  "symbolType": fields[22].strip(),
+
+                  "changePercent": change_percent,
+
+                  "source": "TSETMC",
+                  "snapshotTimeUTC": now_utc.isoformat(),
+                  "snapshotTimeTehran": now_tehran.isoformat(),
+              }
+
+              market.append(item)
+
+          if len(market) < 100:
+              raise RuntimeError(
+                  f"Market snapshot suspiciously small: {len(market)} rows. "
+                  "Existing data will NOT be overwritten."
+              )
+
+          print(f"Valid market rows: {len(market)}")
+
+          # ------------------------------------------------------------
+          # 2) CLIENT TYPE / حقیقی حقوقی
+          # ------------------------------------------------------------
+
+          client_map = {}
+          client_source = None
+
+          try:
+              raw_client, client_source = fetch_with_retry(
+                  CLIENT_URLS,
+                  "CLIENT-TYPE"
+              )
+
+              for raw_row in raw_client.split(";"):
+                  raw_row = raw_row.strip()
+
+                  if not raw_row:
+                      continue
+
+                  fields = raw_row.split(",")
+
+                  if len(fields) < 9:
+                      continue
+
+                  ins_code = fields[0].strip()
+
+                  if not ins_code:
+                      continue
+
+                  client_map[ins_code] = {
+                      "naturalBuyCount": to_int(fields[1]),
+                      "legalBuyCount": to_int(fields[2]),
+                      "naturalBuyVolume": to_int(fields[3]),
+                      "legalBuyVolume": to_int(fields[4]),
+                      "naturalSellCount": to_int(fields[5]),
+                      "legalSellCount": to_int(fields[6]),
+                      "naturalSellVolume": to_int(fields[7]),
+                      "legalSellVolume": to_int(fields[8]),
+                  }
+
+              print(f"Client-type rows: {len(client_map)}")
+
+          except Exception as exc:
+              # Client type is supplementary.
+              # Do NOT destroy an otherwise valid market snapshot.
+              print("WARNING: ClientType unavailable:", exc)
+
+          # Merge client type into market rows.
+          for item in market:
+              ct = client_map.get(item["insCode"])
+
+              if ct:
+                  item["clientType"] = ct
+
+                  nbv = ct["naturalBuyVolume"] or 0
+                  lbv = ct["legalBuyVolume"] or 0
+                  nsv = ct["naturalSellVolume"] or 0
+                  lsv = ct["legalSellVolume"] or 0
+
+                  item["naturalNetVolume"] = nbv - nsv
+                  item["legalNetVolume"] = lbv - lsv
+
+                  item["clientTypeAvailable"] = True
+              else:
+                  item["clientType"] = None
+                  item["naturalNetVolume"] = None
+                  item["legalNetVolume"] = None
+                  item["clientTypeAvailable"] = False
+
+          # ------------------------------------------------------------
+          # 3) MARKET FILTER
+          # ------------------------------------------------------------
+
+          # flow:
+          # 1 = بورس
+          # 2 = فرابورس
+          # 4 = بازار پایه
+          #
+          # Keep only these for the stock radar.
+          stocks = [
+              x for x in market
+              if x.get("flow") in (1, 2, 4)
+          ]
+
+          if len(stocks) < 50:
+              raise RuntimeError(
+                  f"Filtered stock universe is suspiciously small: {len(stocks)}"
+              )
+
+          # ------------------------------------------------------------
+          # 4) MARKET OVERVIEW
+          # ------------------------------------------------------------
+
+          overview = {
+              "rawMarketState": market_state_raw,
+              "refId": ref_id_raw,
+              "totalMarketRows": len(market),
+              "stockRows": len(stocks),
+          }
+
+          # ------------------------------------------------------------
+          # 5) SNAPSHOT OBJECT
+          # ------------------------------------------------------------
+
+          snapshot_date = now_tehran.strftime("%Y-%m-%d")
+
+          snapshot = {
+              "schemaVersion": 2,
+              "market": "iran",
+              "marketName": "TSETMC",
+              "snapshotDate": snapshot_date,
+              "snapshotTimeUTC": now_utc.isoformat(),
+              "snapshotTimeTehran": now_tehran.isoformat(),
+
+              "dataStatus": "VALID",
+
+              "source": {
+                  "marketWatch": market_source,
+                  "clientType": client_source,
+              },
+
+              "dataIntegrity": {
+                  "lookaheadUsed": False,
+                  "fabricatedValues": False,
+                  "marketWatchRows": len(market),
+                  "stockRows": len(stocks),
+                  "clientTypeRows": len(client_map),
+              },
+
+              "overview": overview,
+
+              "items": stocks,
+          }
+
+          # ------------------------------------------------------------
+          # 6) WRITE FILES
+          # ------------------------------------------------------------
+
+          os.makedirs("radar-data/daily", exist_ok=True)
+
+          latest_file = "radar-data/stocks.json"
+          daily_file = f"radar-data/daily/{snapshot_date}.json"
+
+          with open(latest_file, "w", encoding="utf-8") as f:
+              json.dump(
+                  snapshot,
+                  f,
+                  ensure_ascii=False,
+                  separators=(",", ":")
+              )
+
+          with open(daily_file, "w", encoding="utf-8") as f:
+              json.dump(
+                  snapshot,
+                  f,
+                  ensure_ascii=False,
+                  separators=(",", ":")
+              )
+
+          # Commodities are deliberately NOT fabricated.
+          commodities = {
+              "schemaVersion": 2,
+              "market": "iran",
+              "snapshotDate": snapshot_date,
+              "snapshotTimeUTC": now_utc.isoformat(),
+              "dataStatus": "NOT_AVAILABLE_FROM_THIS_SOURCE",
+              "items": []
+          }
+
+          with open(
+              "radar-data/commodities.json",
+              "w",
+              encoding="utf-8"
+          ) as f:
+              json.dump(
+                  commodities,
+                  f,
+                  ensure_ascii=False,
+                  separators=(",", ":")
+              )
+
+          print("Created:", latest_file)
+          print("Created:", daily_file)
+          print("Created:", "radar-data/commodities.json")
+          print("FINAL STOCK COUNT:", len(stocks))
+
+      - name: Validate snapshot
+        shell: bash
         run: |
+          set -e
+
           test -s radar-data/stocks.json
           test -s radar-data/commodities.json
-          node -e "const fs=require('fs'); for(const f of ['radar-data/stocks.json','radar-data/commodities.json']) { if(fs.existsSync(f)){ const j=JSON.parse(fs.readFileSync(f,'utf8')); console.log(f, 'items=',Array.isArray(j.items)?j.items.length:0, 'timestamp=',j.timestamp, 'source=',j.source); }}"
 
-      - name: Commit updated radar data
+          python - <<'PY'
+          import json
+          import glob
+
+          with open("radar-data/stocks.json", encoding="utf-8") as f:
+              data = json.load(f)
+
+          assert data["dataStatus"] == "VALID"
+          assert data["dataIntegrity"]["fabricatedValues"] is False
+          assert len(data["items"]) >= 50
+
+          files = glob.glob("radar-data/daily/*.json")
+          assert files, "No daily snapshot created"
+
+          print("Validation OK")
+          print("Stocks:", len(data["items"]))
+          print("Daily snapshots:", len(files))
+          PY
+
+      - name: Commit and push
+        shell: bash
         run: |
-          git config user.name 'MJK Radar Bot'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add radar-data/stocks.json radar-data/commodities.json
+          git config user.name "MJK Radar Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add radar-data/stocks.json
+          git add radar-data/commodities.json
+          git add radar-data/daily/
+
           if git diff --cached --quiet; then
-            echo 'No radar changes to commit.'
+            echo "No changes to commit."
             exit 0
           fi
-          git commit -m 'chore: update MJK radar data [skip ci]'
+
+          git commit -m "data: update MJK daily market snapshot"
           git push
