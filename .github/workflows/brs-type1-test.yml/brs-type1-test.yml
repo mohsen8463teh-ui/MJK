@@ -1,6 +1,9 @@
 name: BRS TYPE1 TEST
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -30,17 +33,21 @@ jobs:
 
           symbol = "فملی"
 
-          url = "https://Api.BrsApi.ir/Tsetmc/History.php?" + urllib.parse.urlencode({
+          params = urllib.parse.urlencode({
               "key": key,
               "type": "1",
               "l18": symbol
           })
 
-          print("Testing BRS Type 1...")
+          url = "https://Api.BrsApi.ir/Tsetmc/History.php?" + params
+
+          print("========================================")
+          print("BRS API TYPE 1 TEST")
+          print("========================================")
           print("Symbol:", symbol)
           print("API key detected: YES")
           print("API key value will NOT be printed.")
-          print("Requesting...")
+          print("Requesting Type 1 data...")
 
           try:
               request = urllib.request.Request(
@@ -65,13 +72,17 @@ jobs:
 
               if isinstance(data, list):
                   rows = data
+
               elif isinstance(data, dict):
                   rows = []
 
-                  for k in ["data", "history", "result", "items", "rows"]:
-                      if isinstance(data.get(k), list):
-                          rows = data[k]
+                  for key_name in ["data", "history", "result", "items", "rows"]:
+                      value = data.get(key_name)
+
+                      if isinstance(value, list):
+                          rows = value
                           break
+
               else:
                   rows = []
 
@@ -81,19 +92,66 @@ jobs:
               if not rows:
                   raise RuntimeError("Type 1 returned ZERO rows")
 
+              first = rows[0]
+
               print("")
               print("FIRST TYPE 1 ROW:")
               print(json.dumps(
-                  rows[0],
+                  first,
                   ensure_ascii=False,
                   indent=2
               ))
 
+              expected_fields = [
+                  "date",
+                  "Buy_CountI",
+                  "Buy_CountN",
+                  "Sell_CountI",
+                  "Sell_CountN",
+                  "Buy_I_Volume",
+                  "Buy_N_Volume",
+                  "Sell_I_Volume",
+                  "Sell_N_Volume",
+                  "Buy_I_Value",
+                  "Buy_N_Value",
+                  "Sell_I_Value",
+                  "Sell_N_Value"
+              ]
+
+              found_fields = []
+
+              if isinstance(first, dict):
+                  found_fields = [
+                      field for field in expected_fields
+                      if field in first
+                  ]
+
               print("")
-              print("================================")
+              print("EXPECTED TYPE 1 FIELDS FOUND:",
+                    len(found_fields),
+                    "/",
+                    len(expected_fields))
+
+              print("FIELDS:")
+              for field in found_fields:
+                  print(" -", field)
+
+              missing_fields = [
+                  field for field in expected_fields
+                  if field not in found_fields
+              ]
+
+              if missing_fields:
+                  print("")
+                  print("MISSING EXPECTED FIELDS:")
+                  for field in missing_fields:
+                      print(" -", field)
+
+              print("")
+              print("========================================")
               print("BRS TYPE 1 TEST: SUCCESS")
               print("حقیقی/حقوقی data received successfully.")
-              print("================================")
+              print("========================================")
 
           except urllib.error.HTTPError as e:
               print("HTTP ERROR:", e.code, e.reason)
