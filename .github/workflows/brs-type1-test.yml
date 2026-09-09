@@ -1,0 +1,120 @@
+name: BRS TYPE1 TEST
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-type1:
+    name: Verify حقیقی حقوقی
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Test BRS Type 1
+        env:
+          BRS_API_KEY: ${{ secrets.BRS_API_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import json
+          import urllib.parse
+          import urllib.request
+
+          key = os.environ.get("BRS_API_KEY", "").strip()
+          if not key:
+              raise RuntimeError("BRS_API_KEY secret is missing")
+
+          symbol = "فملی"
+          params = urllib.parse.urlencode({
+              "key": key,
+              "type": "1",
+              "l18": symbol
+          })
+
+          url = "https://Api.BrsApi.ir/Tsetmc/History.php?" + params
+
+          print("BRS API TYPE 1 TEST")
+          print("Symbol:", symbol)
+          print("API key detected: YES")
+          print("Requesting Type 1 data...")
+
+          request = urllib.request.Request(
+              url,
+              headers={
+                  "User-Agent": "MJK-BRS-Type1-Test/1.0",
+                  "Accept": "application/json"
+              }
+          )
+
+          with urllib.request.urlopen(request, timeout=30) as response:
+              status = response.status
+              body = response.read().decode("utf-8", errors="replace")
+
+          print("HTTP STATUS:", status)
+          print("RESPONSE LENGTH:", len(body))
+
+          if status != 200:
+              raise RuntimeError("HTTP status is not 200")
+
+          data = json.loads(body)
+
+          if isinstance(data, list):
+              rows = data
+          elif isinstance(data, dict):
+              rows = []
+              for key_name in ["data", "history", "result", "items", "rows"]:
+                  value = data.get(key_name)
+                  if isinstance(value, list):
+                      rows = value
+                      break
+          else:
+              rows = []
+
+          print("JSON RESPONSE: VALID")
+          print("ROWS:", len(rows))
+
+          if not rows:
+              raise RuntimeError("Type 1 returned ZERO rows")
+
+          print("FIRST TYPE 1 ROW:")
+          print(json.dumps(rows[0], ensure_ascii=False, indent=2))
+
+          expected_fields = [
+              "date",
+              "Buy_CountI",
+              "Buy_CountN",
+              "Sell_CountI",
+              "Sell_CountN",
+              "Buy_I_Volume",
+              "Buy_N_Volume",
+              "Sell_I_Volume",
+              "Sell_N_Volume",
+              "Buy_I_Value",
+              "Buy_N_Value",
+              "Sell_I_Value",
+              "Sell_N_Value"
+          ]
+
+          found_fields = [
+              f for f in expected_fields
+              if isinstance(rows[0], dict) and f in rows[0]
+          ]
+
+          print(
+              "EXPECTED TYPE 1 FIELDS FOUND:",
+              len(found_fields),
+              "/",
+              len(expected_fields)
+          )
+
+          for field in found_fields:
+              print(" -", field)
+
+          print("BRS TYPE 1 TEST: SUCCESS")
+          print("حقیقی/حقوقی data received successfully.")
+          PY
