@@ -7,59 +7,64 @@ const OUT = path.join(process.cwd(), 'radar-data');
 fs.mkdirSync(OUT, { recursive: true });
 
 const HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36',
-  'Accept': 'application/json,text/plain,text/csv,text/html,*/*',
-  'Accept-Language': 'fa-IR,fa;q=0.9,en;q=0.7',
-  'Referer': 'https://www.tsetmc.com/',
-  'Origin': 'https://www.tsetmc.com',
+  'User-Agent': 'Mozilla/5.0 MJK-Radar/1.0',
+  'Accept': '*/*',
+  'Accept-Language': 'fa-IR,fa;q=0.9,en;q=0.8',
   'Cache-Control': 'no-cache'
 };
 
-function request(url, redirects = 0) {
+function request(url, timeout = 20000, redirects = 0) {
   return new Promise((resolve, reject) => {
-    if (redirects > 5) return reject(new Error('too many redirects'));
+    if (redirects > 5) {
+      return reject(new Error('too many redirects'));
+    }
 
     const u = new URL(url);
     const lib = u.protocol === 'http:' ? http : https;
 
-    const req = lib.get(
-      u,
-      { headers: HEADERS, timeout: 18000 },
-      res => {
-        if (
-          res.statusCode >= 300 &&
-          res.statusCode < 400 &&
-          res.headers.location
-        ) {
-          res.resume();
-          return resolve(
-            request(
-              new URL(res.headers.location, u).toString(),
-              redirects + 1
-            )
+    const req = lib.get(u, { headers: HEADERS }, res => {
+      if (
+        res.statusCode >= 300 &&
+        res.statusCode < 400 &&
+        res.headers.location
+      ) {
+        res.resume();
+        return resolve(
+          request(
+            new URL(res.headers.location, u).toString(),
+            timeout,
+            redirects + 1
+          )
+        );
+      }
+
+      let body = '';
+      res.setEncoding('utf8');
+
+      res.on('data', x => {
+        body += x;
+      });
+
+      res.on('end', () => {
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          return reject(
+            new Error(`HTTP ${res.statusCode}`)
           );
         }
 
-        let body = '';
-        res.setEncoding('utf8');
-        res.on('data', x => body += x);
+        resolve(body);
+      });
+    });
 
-        res.on('end', () => {
-          if (res.statusCode < 200 || res.statusCode >= 300) {
-            reject(new Error(`HTTP ${res.statusCode}`));
-          } else {
-            resolve(body);
-          }
-        });
-      }
-    );
+    req.setTimeout(timeout, () => {
+      req.destroy(new Error('timeout'));
+    });
 
-    req.on('timeout', () => req.destroy(new Error('timeout')));
     req.on('error', reject);
   });
 }
 
-async function get(url, attempts = 3) {
+async function get(url, attempts = 2) {
   let last;
 
   for (let i = 0; i < attempts; i++) {
@@ -69,7 +74,7 @@ async function get(url, attempts = 3) {
       last = e;
 
       if (i + 1 < attempts) {
-        await new Promise(r => setTimeout(r, 1200 * (i + 1)));
+        await new Promise(r => setTimeout(r, 1500));
       }
     }
   }
@@ -87,20 +92,20 @@ function num(v) {
   return Number.isFinite(n) ? n : null;
 }
 
-function parseLegacyMarketWatch(raw) {
+function parseMarketWatch(raw) {
   const parts = raw.split('@');
 
-  if (parts.length < 5) {
+  if (parts.length < 3) {
     throw new Error(
-      `unexpected MarketWatchInit response: ${parts.length} parts`
+      `invalid MarketWatch response: ${parts.length} parts`
     );
   }
 
   const rows = (parts[2] || '').split(';');
-  const out = [];
+  const result = [];
 
-  for (const line of rows) {
-    const x = line.split(',');
+  for (const row of rows) {
+    const x = row.split(',');
 
     if (x.length < 26) continue;
 
@@ -115,7 +120,7 @@ function parseLegacyMarketWatch(raw) {
 
     if (!insCode || !symbol || last == null) continue;
 
-    out.push({
+    result.push({
       insCode,
       isin,
       symbol,
@@ -123,9 +128,10 @@ function parseLegacyMarketWatch(raw) {
       last,
       close,
       prev,
-      change: prev
-        ? ((last - prev) / prev) * 100
-        : null,
+      change:
+        prev && last != null
+          ? ((last - prev) / prev) * 100
+          : null,
       vol: num(x[9]),
       value: num(x[10]),
       trades: num(x[8]),
@@ -140,16 +146,14 @@ function parseLegacyMarketWatch(raw) {
     });
   }
 
-  if (!out.length) {
-    throw new Error(
-      'legacy MarketWatchInit returned no valid price rows'
-    );
+  if (!result.length) {
+    throw new Error('no valid MarketWatch rows');
   }
 
-  return out;
+  return result;
 }
 
-async function fetchLegacy() {
+async function legacyDirect() {
   const urls = [
     'http://old.tsetmc.com/tsev2/data/MarketWatchInit.aspx?h=0&r=0',
     'http://www.tsetmc.com/tsev2/data/MarketWatchInit.aspx?h=0&r=0'
@@ -159,137 +163,221 @@ async function fetchLegacy() {
 
   for (const url of urls) {
     try {
-      const raw = await get(url);
-      return parseLegacyMarketWatch(raw);
+      console.log('Trying direct:', url);
+      return parseMarketWatch(await get(url));
     } catch (e) {
+      console.warn('Direct failed:', e.message);
       last = e;
-      console.warn(
-        'legacy source failed:',
-        url,
-        e.message
-      );
     }
   }
 
-  throw last || new Error('no legacy source');
+  throw last;
 }
 
-async function fetchWebgwFuture() {
+async function legacyViaJina() {
+  const target =
+    'http://old.tsetmc.com/tsev2/data/MarketWatchInit.aspx?h=0&r=0';
+
   const url =
-    'https://webgw.tse.ir/InstrumentProvider/api/v1/MarketWatch/MarketWatchFuture/fa';
+    'https://r.jina.ai/' + target;
+
+  console.log('Trying Jina Reader:', url);
+
+  const raw = await get(url, 3000);
+
+  return parseMarketWatch(raw);
+}
+
+async function officialCash() {
+  const url =
+    'https://webgw.tse.ir/InstrumentProvider/api/v1/MarketWatch/MarketWatchCash/fa';
+
+  console.log('Trying official TSE gateway');
 
   const raw = await get(url, 2);
   const j = JSON.parse(raw);
 
-  const items = Array.isArray(j)
-    ? j
-    : (j.Items || j.items || []);
+  const items =
+    Array.isArray(j)
+      ? j
+      : (
+          j.items ||
+          j.Items ||
+          j.marketWatch ||
+          j.MarketWatch ||
+          []
+        );
 
-  const val = v =>
-    v && typeof v === 'object'
-      ? (v.value ?? v.Value ?? null)
-      : v;
+  const result = [];
 
-  return items
-    .map(x => {
-      const last = num(val(x.lastPrice));
-      const close = num(val(x.closingPrice));
-      const prev = num(val(x.yesterdayPrice));
+  for (const x of items) {
+    const value = v =>
+      v && typeof v === 'object'
+        ? (v.value ?? v.Value ?? null)
+        : v;
 
-      return {
-        insCode: String(
-          x.insCode ?? x.InsCode ?? ''
-        ),
-        isin: String(
-          x.instrumentId ?? x.InstrumentId ?? ''
-        ),
-        symbol: String(
-          x.instrumentName ??
-          x.InstrumentName ??
-          x.symbol ??
-          ''
-        ),
-        name: String(
-          x.companyNamePersian ??
-          x.companyName ??
-          ''
-        ),
-        last,
-        close,
-        prev,
-        change:
-          num(val(x.lastPriceChangePercent)) ??
-          (
-            prev && last != null
-              ? ((last - prev) / prev) * 100
-              : null
-          ),
-        vol: num(val(x.tradeVolume)),
-        value: num(val(x.tradeValue)),
-        trades: num(val(x.tradeCount)),
-        flow: 3,
-        sourceType: 'future'
-      };
-    })
-    .filter(
-      x => x.symbol && x.last != null
+    const symbol = String(
+      x.symbol ??
+      x.Symbol ??
+      x.instrumentName ??
+      x.InstrumentName ??
+      ''
+    ).trim();
+
+    const last = num(
+      value(
+        x.lastPrice ??
+        x.LastPrice ??
+        x.pl
+      )
     );
+
+    if (!symbol || last == null) continue;
+
+    const prev = num(
+      value(
+        x.yesterdayPrice ??
+        x.YesterdayPrice ??
+        x.py
+      )
+    );
+
+    result.push({
+      insCode: String(
+        x.insCode ??
+        x.InsCode ??
+        ''
+      ),
+      isin: String(
+        x.isin ??
+        x.ISIN ??
+        x.instrumentId ??
+        ''
+      ),
+      symbol,
+      name: String(
+        x.name ??
+        x.Name ??
+        x.companyName ??
+        x.CompanyName ??
+        ''
+      ),
+      last,
+      close: num(
+        value(
+          x.closingPrice ??
+          x.ClosingPrice ??
+          x.pc
+        )
+      ),
+      prev,
+      change:
+        prev && last != null
+          ? ((last - prev) / prev) * 100
+          : null,
+      vol: num(
+        value(
+          x.tradeVolume ??
+          x.TradeVolume ??
+          x.tvol
+        )
+      ),
+      value: num(
+        value(
+          x.tradeValue ??
+          x.TradeValue ??
+          x.tval
+        )
+      ),
+      trades: num(
+        value(
+          x.tradeCount ??
+          x.TradeCount ??
+          x.tno
+        )
+      ),
+      flow: num(
+        value(
+          x.flow ??
+          x.Flow
+        )
+      )
+    });
+  }
+
+  if (!result.length) {
+    throw new Error('official gateway returned no valid rows');
+  }
+
+  return result;
 }
 
-async function main() {
-  const all = await fetchLegacy();
+async function getAllMarketData() {
+  const sources = [
+    ['Jina Reader', legacyViaJina],
+    ['Official TSE', officialCash],
+    ['Legacy direct', legacyDirect]
+  ];
 
-  const stocks = all.filter(
-    x =>
-      x.flow === 1 ||
-      x.flow === 2 ||
-      x.flow === 4 ||
-      x.flow === 5
-  );
+  let last;
 
-  let commodities = all.filter(
-    x =>
-      x.flow === 3 ||
-      x.flow === 6 ||
-      x.flow === 7 ||
-      x.yval === '701'
-  );
-
-  if (!commodities.length) {
+  for (const [name, fn] of sources) {
     try {
-      commodities = await fetchWebgwFuture();
+      const rows = await fn();
+
+      console.log(
+        `${name} OK: ${rows.length} rows`
+      );
+
+      if (rows.length) return rows;
     } catch (e) {
       console.warn(
-        'official future source unavailable:',
+        `${name} failed:`,
         e.message
       );
+
+      last = e;
     }
   }
 
+  throw last || new Error('all market sources failed');
+}
+
+async function main() {
+  const all = await getAllMarketData();
+
+  const stocks = all.filter(x =>
+    [1, 2, 4, 5].includes(x.flow)
+  );
+
+  const commodities = all.filter(x =>
+    [3, 6, 7].includes(x.flow) ||
+    x.yval === '701'
+  );
+
   if (!stocks.length) {
     throw new Error(
-      'no valid stock rows after market filtering'
+      'NO STOCK DATA — refusing fabricated data'
     );
   }
 
   if (!commodities.length) {
     throw new Error(
-      'no valid commodity/future rows'
+      'NO COMMODITY DATA — refusing fabricated data'
     );
   }
 
-  const now = Date.now();
+  const timestamp = Date.now();
 
   fs.writeFileSync(
     path.join(OUT, 'stocks.json'),
     JSON.stringify({
       source:
-        'TSETMC legacy MarketWatchInit via GitHub Actions',
-      timestamp: now,
+        'TSETMC market snapshot via GitHub Actions',
+      timestamp,
       live: false,
       upstreamOk: true,
       marketStatus: 'snapshot',
-      dataAgeSec: 0,
       items: stocks
     })
   );
@@ -298,25 +386,24 @@ async function main() {
     path.join(OUT, 'commodities.json'),
     JSON.stringify({
       source:
-        'TSETMC legacy MarketWatchInit / official future fallback via GitHub Actions',
-      timestamp: now,
+        'TSETMC commodity snapshot via GitHub Actions',
+      timestamp,
       live: false,
       upstreamOk: true,
       marketStatus: 'snapshot',
-      dataAgeSec: 0,
       items: commodities
     })
   );
 
   console.log(
-    `stocks=${stocks.length} commodities=${commodities.length}`
+    `SUCCESS stocks=${stocks.length} commodities=${commodities.length}`
   );
 }
 
-main().catch(e => {
+main().catch(err => {
   console.error(
-    'radar update failed:',
-    e.stack || e.message || e
+    'RADAR UPDATE FAILED:',
+    err.stack || err.message || err
   );
 
   process.exit(1);
