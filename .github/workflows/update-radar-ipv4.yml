@@ -1,459 +1,134 @@
-name: Update MJK Daily Market Radar
+name: TEST BRS API
 
 on:
   workflow_dispatch:
 
-  # 12:45 Tehran
-  # Saturday-Wednesday
-  schedule:
-    - cron: '15 9 * * 0-3,6'
-
 permissions:
-  contents: write
-
-concurrency:
-  group: mjk-daily-radar
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  update:
+  test-brs-api:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Fetch TSETMC daily snapshot
+      - name: Test BRS API
         shell: python
+        env:
+          BRS_API_KEY: ${{ secrets.BRS_API_KEY }}
         run: |
           import json
           import os
-          import time
-          from datetime import datetime, timezone
-          from zoneinfo import ZoneInfo
-          from urllib.request import Request, urlopen
+          import sys
+          import urllib.parse
+          import urllib.request
 
-          TEHRAN = ZoneInfo("Asia/Tehran")
-          now_utc = datetime.now(timezone.utc)
-          now_tehran = now_utc.astimezone(TEHRAN)
-          snapshot_date = now_tehran.strftime("%Y-%m-%d")
+          api_key = os.environ.get("BRS_API_KEY")
 
-          HEADERS = {
-              "User-Agent": "Mozilla/5.0",
-              "Accept": "*/*",
-              "Accept-Language": "en-US,en;q=0.9",
-              "Connection": "close",
+          if not api_key:
+              raise RuntimeError(
+                  "BRS_API_KEY GitHub Secret was not found."
+              )
+
+          symbol = "فملی"
+
+          print("Testing BRS API...")
+          print("Symbol:", symbol)
+          print("API key detected: YES")
+          print("API key value will NOT be printed.")
+
+          base = "https://Api.BrsApi.ir/Tsetmc/History.php"
+
+          params = {
+              "key": api_key,
+              "type": "0",
+              "l18": symbol
           }
 
-          MARKET_URLS = [
-              "http://old.tsetmc.com/tsev2/data/MarketWatchInit.aspx?h=0&r=0",
-              "http://www.tsetmc.com/tsev2/data/MarketWatchInit.aspx?h=0&r=0",
-          ]
+          url = base + "?" + urllib.parse.urlencode(params)
 
-          CLIENT_URLS = [
-              "http://old.tsetmc.com/tsev2/data/ClientTypeAll.aspx",
-              "http://www.tsetmc.com/tsev2/data/ClientTypeAll.aspx",
-          ]
-
-          def fetch(url, timeout=45):
-              req = Request(url, headers=HEADERS)
-              with urlopen(req, timeout=timeout) as response:
-                  data = response.read()
-                  return data.decode("utf-8-sig", errors="replace")
-
-          def fetch_any(urls, label):
-              last_error = None
-
-              for url in urls:
-                  for attempt in range(3):
-                      try:
-                          print(f"{label}: {url} attempt {attempt + 1}/3")
-                          text = fetch(url)
-
-                          if len(text.strip()) < 100:
-                              raise RuntimeError("Empty or invalid response")
-
-                          print(f"{label}: received {len(text)} bytes")
-                          return text, url
-
-                      except Exception as e:
-                          last_error = e
-                          print(f"{label} failed: {e}")
-                          time.sleep(3 * (attempt + 1))
-
-              raise RuntimeError(
-                  f"{label} failed on all endpoints: {last_error}"
-              )
-
-          def integer(value):
-              try:
-                  value = str(value).strip()
-                  if value == "":
-                      return None
-                  return int(float(value))
-              except:
-                  return None
-
-          def number(value):
-              try:
-                  value = str(value).strip()
-                  if value == "":
-                      return None
-                  return float(value)
-              except:
-                  return None
-
-          # ============================================================
-          # MARKET WATCH
-          # ============================================================
-
-          raw_market, market_source = fetch_any(
-              MARKET_URLS,
-              "MARKET-WATCH"
-          )
-
-          parts = raw_market.split("@")
-
-          if len(parts) < 5:
-              raise RuntimeError(
-                  f"Unexpected MarketWatch response: {len(parts)} sections"
-              )
-
-          market_state = parts[1]
-          price_rows = parts[2]
-          ref_id = parts[4]
-
-          if not price_rows.strip():
-              raise RuntimeError(
-                  "TSETMC returned an empty market table. "
-                  "Existing data will NOT be overwritten."
-              )
-
-          market = []
-
-          for row in price_rows.split(";"):
-              row = row.strip()
-
-              if not row:
-                  continue
-
-              fields = row.split(",")
-
-              if len(fields) < 23:
-                  continue
-
-              ins_code = fields[0].strip()
-              isin = fields[1].strip()
-              symbol = fields[2].strip()
-              name = fields[3].strip()
-
-              if not ins_code or not symbol:
-                  continue
-
-              previous = integer(fields[13])
-              last_price = integer(fields[7])
-              close_price = integer(fields[6])
-
-              change_percent = None
-
-              if previous not in (None, 0) and last_price is not None:
-                  change_percent = round(
-                      ((last_price - previous) / previous) * 100,
-                      4
-                  )
-
-              item = {
-                  "insCode": ins_code,
-                  "isin": isin,
-                  "symbol": symbol,
-                  "name": name,
-
-                  "time": fields[4].strip(),
-
-                  "open": integer(fields[5]),
-                  "close": close_price,
-                  "last": last_price,
-                  "yesterday": previous,
-
-                  "tradeCount": integer(fields[8]),
-                  "volume": integer(fields[9]),
-                  "value": integer(fields[10]),
-
-                  "low": integer(fields[11]),
-                  "high": integer(fields[12]),
-
-                  "eps": number(fields[14]),
-                  "baseVolume": integer(fields[15]),
-
-                  "flow": integer(fields[17]),
-                  "marketGroup": fields[18].strip(),
-
-                  "maxAllowed": number(fields[19]),
-                  "minAllowed": number(fields[20]),
-
-                  "shareCount": integer(fields[21]),
-                  "symbolType": fields[22].strip(),
-
-                  "changePercent": change_percent,
-
-                  "source": "TSETMC",
-                  "snapshotDate": snapshot_date,
-                  "snapshotTimeUTC": now_utc.isoformat(),
-                  "snapshotTimeTehran": now_tehran.isoformat()
+          request = urllib.request.Request(
+              url,
+              headers={
+                  "User-Agent": "MJK-Data-Test/1.0",
+                  "Accept": "application/json"
               }
-
-              market.append(item)
-
-          print("Total market rows:", len(market))
-
-          if len(market) < 100:
-              raise RuntimeError(
-                  f"Suspiciously small market snapshot: {len(market)}"
-              )
-
-          # ============================================================
-          # CLIENT TYPE - حقیقی / حقوقی
-          # ============================================================
-
-          client_map = {}
-          client_source = None
+          )
 
           try:
-              raw_client, client_source = fetch_any(
-                  CLIENT_URLS,
-                  "CLIENT-TYPE"
-              )
+              with urllib.request.urlopen(
+                  request,
+                  timeout=30
+              ) as response:
 
-              for row in raw_client.split(";"):
-                  row = row.strip()
-
-                  if not row:
-                      continue
-
-                  fields = row.split(",")
-
-                  if len(fields) < 9:
-                      continue
-
-                  ins_code = fields[0].strip()
-
-                  if not ins_code:
-                      continue
-
-                  client_map[ins_code] = {
-                      "naturalBuyCount": integer(fields[1]),
-                      "legalBuyCount": integer(fields[2]),
-                      "naturalBuyVolume": integer(fields[3]),
-                      "legalBuyVolume": integer(fields[4]),
-                      "naturalSellCount": integer(fields[5]),
-                      "legalSellCount": integer(fields[6]),
-                      "naturalSellVolume": integer(fields[7]),
-                      "legalSellVolume": integer(fields[8])
-                  }
-
-              print("Client type rows:", len(client_map))
+                  status = response.status
+                  body = response.read().decode(
+                      "utf-8",
+                      errors="replace"
+                  )
 
           except Exception as e:
-              print("WARNING: ClientType unavailable:", e)
+              print("BRS CONNECTION FAILED")
+              print(type(e).__name__)
+              print(str(e))
+              sys.exit(1)
 
-          # Merge حقیقی/حقوقی data
-          for item in market:
+          print("HTTP STATUS:", status)
+          print("RESPONSE LENGTH:", len(body))
 
-              client = client_map.get(item["insCode"])
-
-              if client:
-
-                  item["clientType"] = client
-                  item["clientTypeAvailable"] = True
-
-                  natural_net = (
-                      (client["naturalBuyVolume"] or 0)
-                      -
-                      (client["naturalSellVolume"] or 0)
-                  )
-
-                  legal_net = (
-                      (client["legalBuyVolume"] or 0)
-                      -
-                      (client["legalSellVolume"] or 0)
-                  )
-
-                  item["naturalNetVolume"] = natural_net
-                  item["legalNetVolume"] = legal_net
-
-              else:
-
-                  item["clientType"] = None
-                  item["clientTypeAvailable"] = False
-                  item["naturalNetVolume"] = None
-                  item["legalNetVolume"] = None
-
-          # ============================================================
-          # STOCK UNIVERSE
-          # ============================================================
-
-          stocks = [
-              item for item in market
-              if item.get("flow") in (1, 2, 4)
-          ]
-
-          print("Stock rows:", len(stocks))
-
-          if len(stocks) < 50:
+          if status != 200:
               raise RuntimeError(
-                  f"Suspicious stock count: {len(stocks)}"
+                  f"BRS API returned HTTP {status}"
               )
 
-          # ============================================================
-          # SNAPSHOT
-          # ============================================================
-
-          snapshot = {
-              "schemaVersion": 3,
-              "market": "iran",
-              "marketName": "TSETMC",
-
-              "snapshotDate": snapshot_date,
-              "snapshotTimeUTC": now_utc.isoformat(),
-              "snapshotTimeTehran": now_tehran.isoformat(),
-
-              "dataStatus": "VALID",
-
-              "source": {
-                  "marketWatch": market_source,
-                  "clientType": client_source
-              },
-
-              "dataIntegrity": {
-                  "lookaheadUsed": False,
-                  "fabricatedValues": False,
-                  "marketRows": len(market),
-                  "stockRows": len(stocks),
-                  "clientTypeRows": len(client_map)
-              },
-
-              "marketState": market_state,
-              "refId": ref_id,
-
-              "items": stocks
-          }
-
-          # ============================================================
-          # WRITE FILES
-          # ============================================================
-
-          os.makedirs("radar-data/daily", exist_ok=True)
-
-          with open(
-              "radar-data/stocks.json",
-              "w",
-              encoding="utf-8"
-          ) as f:
-              json.dump(
-                  snapshot,
-                  f,
-                  ensure_ascii=False,
-                  separators=(",", ":")
-              )
-
-          daily_path = (
-              f"radar-data/daily/{snapshot_date}.json"
-          )
-
-          with open(
-              daily_path,
-              "w",
-              encoding="utf-8"
-          ) as f:
-              json.dump(
-                  snapshot,
-                  f,
-                  ensure_ascii=False,
-                  separators=(",", ":")
-              )
-
-          # No fabricated commodity data.
-          commodities = {
-              "schemaVersion": 1,
-              "market": "iran",
-              "snapshotDate": snapshot_date,
-              "snapshotTimeUTC": now_utc.isoformat(),
-              "dataStatus": "NOT_AVAILABLE_FROM_THIS_SOURCE",
-              "items": []
-          }
-
-          with open(
-              "radar-data/commodities.json",
-              "w",
-              encoding="utf-8"
-          ) as f:
-              json.dump(
-                  commodities,
-                  f,
-                  ensure_ascii=False,
-                  separators=(",", ":")
-              )
-
-          print("======================================")
-          print("MJK DAILY SNAPSHOT CREATED")
-          print("Date:", snapshot_date)
-          print("Market rows:", len(market))
-          print("Stocks:", len(stocks))
-          print("Client type:", len(client_map))
-          print("Daily file:", daily_path)
-          print("======================================")
-
-      - name: Validate snapshots
-        shell: python
-        run: |
-          import json
-          import glob
-
-          with open(
-              "radar-data/stocks.json",
-              encoding="utf-8"
-          ) as f:
-              data = json.load(f)
-
-          if data.get("dataStatus") != "VALID":
-              raise RuntimeError("Snapshot is not VALID")
-
-          if data["dataIntegrity"]["fabricatedValues"]:
-              raise RuntimeError("Fabricated data detected")
-
-          if data["dataIntegrity"]["lookaheadUsed"]:
-              raise RuntimeError("Lookahead detected")
-
-          if len(data.get("items", [])) < 50:
-              raise RuntimeError("Too few stock rows")
-
-          daily_files = glob.glob(
-              "radar-data/daily/*.json"
-          )
-
-          if not daily_files:
+          if not body.strip():
               raise RuntimeError(
-                  "No daily snapshot found"
+                  "BRS API returned an empty response."
               )
 
-          print("VALIDATION OK")
-          print("Stocks:", len(data["items"]))
-          print("Daily snapshots:", len(daily_files))
+          try:
+              data = json.loads(body)
+          except Exception:
+              print("Response is not valid JSON.")
+              print(body[:1000])
+              raise
 
-      - name: Commit updated radar data
-        shell: bash
-        run: |
-          git config user.name "MJK Radar Bot"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          print("JSON RESPONSE: VALID")
 
-          git add radar-data/stocks.json
-          git add radar-data/commodities.json
-          git add radar-data/daily/
+          if isinstance(data, list):
+              rows = data
+          elif isinstance(data, dict):
+              rows = (
+                  data.get("data")
+                  or data.get("history")
+                  or data.get("result")
+                  or data
+              )
+          else:
+              rows = []
 
-          if git diff --cached --quiet; then
-            echo "No radar changes to commit."
-            exit 0
-          fi
+          if isinstance(rows, list):
+              print("ROWS:", len(rows))
 
-          git commit -m "data: update MJK daily market snapshot"
-          git push
+              if len(rows) > 0:
+                  print("FIRST ROW:")
+                  print(
+                      json.dumps(
+                          rows[0],
+                          ensure_ascii=False,
+                          indent=2
+                      )
+                  )
+          else:
+              print("RESPONSE OBJECT:")
+              print(
+                  json.dumps(
+                      data,
+                      ensure_ascii=False,
+                      indent=2
+                  )[:3000]
+              )
+
+          print("")
+          print("================================")
+          print("BRS API TEST FINISHED")
+          print("================================")
