@@ -1,0 +1,109 @@
+name: BRS TYPE1 TEST
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-type1:
+    name: Verify حقیقی حقوقی
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Test BRS Type 1
+        env:
+          BRS_API_KEY: ${{ secrets.BRS_API_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import json
+          import urllib.parse
+          import urllib.request
+          import urllib.error
+
+          key = os.environ.get("BRS_API_KEY", "").strip()
+
+          if not key:
+              raise RuntimeError("BRS_API_KEY secret is missing")
+
+          symbol = "فملی"
+
+          url = "https://Api.BrsApi.ir/Tsetmc/History.php?" + urllib.parse.urlencode({
+              "key": key,
+              "type": "1",
+              "l18": symbol
+          })
+
+          print("Testing BRS Type 1...")
+          print("Symbol:", symbol)
+          print("API key detected: YES")
+          print("API key value will NOT be printed.")
+          print("Requesting...")
+
+          try:
+              request = urllib.request.Request(
+                  url,
+                  headers={
+                      "User-Agent": "MJK-BRS-Type1-Test/1.0",
+                      "Accept": "application/json"
+                  }
+              )
+
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  status = response.status
+                  body = response.read().decode("utf-8", errors="replace")
+
+              print("HTTP STATUS:", status)
+              print("RESPONSE LENGTH:", len(body))
+
+              if status != 200:
+                  raise RuntimeError("HTTP status is not 200")
+
+              data = json.loads(body)
+
+              if isinstance(data, list):
+                  rows = data
+              elif isinstance(data, dict):
+                  rows = []
+
+                  for k in ["data", "history", "result", "items", "rows"]:
+                      if isinstance(data.get(k), list):
+                          rows = data[k]
+                          break
+              else:
+                  rows = []
+
+              print("JSON RESPONSE: VALID")
+              print("ROWS:", len(rows))
+
+              if not rows:
+                  raise RuntimeError("Type 1 returned ZERO rows")
+
+              print("")
+              print("FIRST TYPE 1 ROW:")
+              print(json.dumps(
+                  rows[0],
+                  ensure_ascii=False,
+                  indent=2
+              ))
+
+              print("")
+              print("================================")
+              print("BRS TYPE 1 TEST: SUCCESS")
+              print("حقیقی/حقوقی data received successfully.")
+              print("================================")
+
+          except urllib.error.HTTPError as e:
+              print("HTTP ERROR:", e.code, e.reason)
+              raise
+
+          except urllib.error.URLError as e:
+              print("URL ERROR:", e.reason)
+              raise
+
+          except Exception as e:
+              print("ERROR:", type(e).__name__, str(e))
+              raise
+          PY
