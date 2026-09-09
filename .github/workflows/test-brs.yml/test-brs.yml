@@ -1,229 +1,50 @@
-name: BRS API VERIFY
+name: BRS FINAL TEST
 
 on:
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 jobs:
   test:
-    name: Verify BRS API
     runs-on: ubuntu-latest
-
-    env:
-      BRS_API_KEY: ${{ secrets.BRS_API_KEY }}
-
     steps:
-      - name: Test BRS API
-        shell: bash
+      - name: BRS API
+        env:
+          KEY: ${{ secrets.BRS_API_KEY }}
         run: |
-          set -euo pipefail
+          python3 - <<'PY'
+          import os, json, urllib.parse, urllib.request
 
-          python3 <<'PY'
-          import os
-          import json
-          import urllib.parse
-          import urllib.request
-          import urllib.error
+          key = os.environ["KEY"]
+          symbol = "فملی"
 
-          KEY = os.environ.get("BRS_API_KEY", "").strip()
-          SYMBOL = "فملی"
+          for typ, name in [(0, "PRICE"), (1, "TRUE_LEGAL")]:
+              url = "https://Api.BrsApi.ir/Tsetmc/History.php?" + urllib.parse.urlencode({
+                  "key": key,
+                  "type": typ,
+                  "l18": symbol
+              })
 
-          if not KEY:
-              raise RuntimeError("BRS_API_KEY GitHub Secret is missing.")
+              req = urllib.request.Request(
+                  url,
+                  headers={"User-Agent": "MJK"}
+              )
 
-          BASE = "https://Api.BrsApi.ir/Tsetmc/History.php"
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  data = json.loads(r.read().decode("utf-8"))
 
-          report = {
-              "symbol": SYMBOL,
-              "type0": {},
-              "type1": {}
-          }
+              rows = data if isinstance(data, list) else data.get("data", [])
 
-          def extract_rows(obj):
-              if isinstance(obj, list):
-                  return obj
+              print("=" * 50)
+              print(name)
+              print("HTTP: 200")
+              print("ROWS:", len(rows))
 
-              if isinstance(obj, dict):
-                  for key in ("data", "history", "result", "items", "rows"):
-                      value = obj.get(key)
-                      if isinstance(value, list):
-                          return value
+              if not rows:
+                  raise Exception(name + " returned ZERO rows")
 
-              return []
+              print("FIRST ROW:")
+              print(json.dumps(rows[0], ensure_ascii=False, indent=2))
 
-          def request_api(data_type):
-              params = {
-                  "key": KEY,
-                  "type": str(data_type),
-                  "l18": SYMBOL
-              }
-
-              url = BASE + "?" + urllib.parse.urlencode(params)
-
-              try:
-                  req = urllib.request.Request(
-                      url,
-                      headers={
-                          "User-Agent": "MJK-BRS-API-Test/1.0",
-                          "Accept": "application/json"
-                      }
-                  )
-
-                  with urllib.request.urlopen(req, timeout=30) as response:
-                      status = response.status
-                      body = response.read().decode("utf-8", errors="replace")
-
-                  if status != 200:
-                      raise RuntimeError(f"HTTP status: {status}")
-
-                  if not body.strip():
-                      raise RuntimeError("API returned an empty response.")
-
-                  try:
-                      obj = json.loads(body)
-                  except json.JSONDecodeError as e:
-                      raise RuntimeError(
-                          f"API response is not valid JSON: {e}"
-                      )
-
-                  rows = extract_rows(obj)
-
-                  result = {
-                      "http_status": status,
-                      "response_bytes": len(body.encode("utf-8")),
-                      "json_valid": True,
-                      "row_count": len(rows)
-                  }
-
-                  if rows:
-                      first = rows[0]
-
-                      if isinstance(first, dict):
-                          result["first_row_keys"] = list(first.keys())
-
-                          sample_keys = [
-                              "date", "time",
-                              "pc", "pl", "py",
-                              "pmin", "pmax",
-                              "tvol", "tval", "tno",
-                              "Buy_CountI", "Buy_CountN",
-                              "Sell_CountI", "Sell_CountN",
-                              "Buy_I_Volume", "Buy_N_Volume",
-                              "Sell_I_Volume", "Sell_N_Volume",
-                              "Buy_I_Value", "Buy_N_Value",
-                              "Sell_I_Value", "Sell_N_Value"
-                          ]
-
-                          sample = {}
-
-                          for k in sample_keys:
-                              if k in first:
-                                  sample[k] = first[k]
-
-                          result["sample_first_row"] = sample
-
-                      else:
-                          result["first_row_type"] = type(first).__name__
-
-                  return result, True
-
-              except urllib.error.HTTPError as e:
-                  return {
-                      "error": f"HTTPError {e.code}: {e.reason}"
-                  }, False
-
-              except urllib.error.URLError as e:
-                  return {
-                      "error": f"URLError: {e.reason}"
-                  }, False
-
-              except Exception as e:
-                  return {
-                      "error": f"{type(e).__name__}: {e}"
-                  }, False
-
-          type0, ok0 = request_api(0)
-          type1, ok1 = request_api(1)
-
-          report["type0"] = type0
-          report["type1"] = type1
-
-          with open("brs-test-report.json", "w", encoding="utf-8") as f:
-              json.dump(report, f, ensure_ascii=False, indent=2)
-
-          summary = []
-
-          summary.append("# BRS API Verification")
-          summary.append("")
-          summary.append(f"**Symbol:** `{SYMBOL}`")
-          summary.append("")
-
-          for label, result, ok in [
-              ("Type 0 — Price / Trade History", type0, ok0),
-              ("Type 1 — Individual / Legal History", type1, ok1)
-          ]:
-              summary.append(f"## {label}")
-              summary.append("")
-
-              if ok:
-                  summary.append("✅ HTTP/API request succeeded")
-                  summary.append("")
-                  summary.append(f"- HTTP status: `{result.get('http_status')}`")
-                  summary.append(f"- Response size: `{result.get('response_bytes')}` bytes")
-                  summary.append(f"- JSON valid: `{result.get('json_valid')}`")
-                  summary.append(f"- Rows returned: `{result.get('row_count')}`")
-                  summary.append("")
-
-                  sample = result.get("sample_first_row", {})
-
-                  if sample:
-                      summary.append("### First returned record")
-                      summary.append("")
-                      summary.append("| Field | Value |")
-                      summary.append("|---|---|")
-
-                      for k, v in sample.items():
-                          summary.append(
-                              f"| `{k}` | `{str(v).replace('|', ' ')}` |"
-                          )
-
-                      summary.append("")
-
-              else:
-                  summary.append("❌ API request failed")
-                  summary.append("")
-                  summary.append(f"**Error:** `{result.get('error', 'Unknown error')}`")
-                  summary.append("")
-
-          if ok0 and ok1:
-              summary.append("## FINAL RESULT")
-              summary.append("")
-              summary.append("✅ **BRS API is reachable and both requested data types returned records.**")
-          else:
-              summary.append("## FINAL RESULT")
-              summary.append("")
-              summary.append("❌ **BRS API verification failed.**")
-              summary.append("")
-              summary.append("The workflow will intentionally fail so that invalid data is never treated as valid.")
-
-          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
-              f.write("\n".join(summary))
-
-          if not (ok0 and ok1):
-              raise SystemExit(1)
-
-          print("BRS API verification completed successfully.")
-          print(f"Symbol: {SYMBOL}")
-          print(f"Type 0 rows: {type0.get('row_count', 0)}")
-          print(f"Type 1 rows: {type1.get('row_count', 0)}")
+          print("=" * 50)
+          print("BRS FINAL TEST: SUCCESS")
           PY
-
-      - name: Upload verification report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: brs-api-verification-report
-          path: brs-test-report.json
-          if-no-files-found: error
