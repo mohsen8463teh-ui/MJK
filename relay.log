@@ -1,0 +1,1281 @@
+[main 9f6205d] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   84de461..9f6205d  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main af01977] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   9f6205d..af01977  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main c486c46] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   7f4f6c3..c486c46  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 2678eca] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   6632754..2678eca  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main c98ba8c] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   2678eca..c98ba8c  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+Traceback (most recent call last):
+  File "/data/data/com.termux/files/usr/lib/python3.14/urllib/request.py", line 1321, in do_open
+    h.request(req.get_method(), req.selector, req.data, headers,
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              encode_chunked=req.has_header('Transfer-encoding'))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/http/client.py", line 1367, in request
+    self._send_request(method, url, body, headers, encode_chunked)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/http/client.py", line 1413, in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/http/client.py", line 1362, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/http/client.py", line 1122, in _send_output
+    self.send(msg)
+    ~~~~~~~~~^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/http/client.py", line 1066, in send
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/http/client.py", line 1501, in connect
+    super().connect()
+    ~~~~~~~~~~~~~~~^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/http/client.py", line 1032, in connect
+    self.sock = self._create_connection(
+                ~~~~~~~~~~~~~~~~~~~~~~~^
+        (self.host,self.port), self.timeout, self.source_address)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/socket.py", line 874, in create_connection
+    raise exceptions[0]
+  File "/data/data/com.termux/files/usr/lib/python3.14/socket.py", line 859, in create_connection
+    sock.connect(sa)
+    ~~~~~~~~~~~~^^^^
+TimeoutError: timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/data/data/com.termux/files/home/MJK/scripts/mjk-termux-relay.py", line 118, in <module>
+    raw = fetch()
+  File "/data/data/com.termux/files/home/MJK/scripts/mjk-termux-relay.py", line 18, in fetch
+    with urllib.request.urlopen(req, timeout=25) as r:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/urllib/request.py", line 487, in open
+    response = self._open(req, data)
+  File "/data/data/com.termux/files/usr/lib/python3.14/urllib/request.py", line 504, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+                              '_open', req)
+  File "/data/data/com.termux/files/usr/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/data/data/com.termux/files/usr/lib/python3.14/urllib/request.py", line 1369, in https_open
+    return self.do_open(http.client.HTTPSConnection, req,
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        context=self._context)
+                        ^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/urllib/request.py", line 1324, in do_open
+    raise URLError(err)
+urllib.error.URLError: <urlopen error timed out>
+Traceback (most recent call last):
+  File "/data/data/com.termux/files/usr/lib/python3.14/urllib/request.py", line 1321, in do_open
+    h.request(req.get_method(), req.selector, req.data, headers,
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              encode_chunked=req.has_header('Transfer-encoding'))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/http/client.py", line 1367, in request
+    self._send_request(method, url, body, headers, encode_chunked)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/http/client.py", line 1413, in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/http/client.py", line 1362, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/http/client.py", line 1122, in _send_output
+    self.send(msg)
+    ~~~~~~~~~^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/http/client.py", line 1066, in send
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/http/client.py", line 1501, in connect
+    super().connect()
+    ~~~~~~~~~~~~~~~^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/http/client.py", line 1032, in connect
+    self.sock = self._create_connection(
+                ~~~~~~~~~~~~~~~~~~~~~~~^
+        (self.host,self.port), self.timeout, self.source_address)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/socket.py", line 874, in create_connection
+    raise exceptions[0]
+  File "/data/data/com.termux/files/usr/lib/python3.14/socket.py", line 859, in create_connection
+    sock.connect(sa)
+    ~~~~~~~~~~~~^^^^
+TimeoutError: timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/data/data/com.termux/files/home/MJK/scripts/mjk-termux-relay.py", line 118, in <module>
+    raw = fetch()
+  File "/data/data/com.termux/files/home/MJK/scripts/mjk-termux-relay.py", line 18, in fetch
+    with urllib.request.urlopen(req, timeout=25) as r:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/urllib/request.py", line 187, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/urllib/request.py", line 487, in open
+    response = self._open(req, data)
+  File "/data/data/com.termux/files/usr/lib/python3.14/urllib/request.py", line 504, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+                              '_open', req)
+  File "/data/data/com.termux/files/usr/lib/python3.14/urllib/request.py", line 464, in _call_chain
+    result = func(*args)
+  File "/data/data/com.termux/files/usr/lib/python3.14/urllib/request.py", line 1369, in https_open
+    return self.do_open(http.client.HTTPSConnection, req,
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        context=self._context)
+                        ^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.14/urllib/request.py", line 1324, in do_open
+    raise URLError(err)
+urllib.error.URLError: <urlopen error timed out>
+[main a6b7787] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   c98ba8c..a6b7787  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main d4157f3] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   a6b7787..d4157f3  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 3730ebf] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   d4157f3..3730ebf  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 107d9e8] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   3730ebf..107d9e8  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 5afdf41] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   107d9e8..5afdf41  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 05d534b] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   5afdf41..05d534b  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 7a58695] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   05d534b..7a58695  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 4056cdd] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   7a58695..4056cdd  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main e3f710b] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   4056cdd..e3f710b  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main e900703] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   e3f710b..e900703  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 4e1718e] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   e900703..4e1718e  main -> main
+TSETMC valid rows: 3532
+Stocks: 1898
+Commodities/Futures/Energy: 1634
+stocks.json => 1898 items
+commodities.json => 1634 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main d4d67de] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   4e1718e..d4d67de  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main c92d007] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   d4d67de..c92d007  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 5485312] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   c92d007..5485312  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 2926117] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   5485312..2926117  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 3f91f7c] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   2926117..3f91f7c  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main af8e711] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   3f91f7c..af8e711  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 9953c6e] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   af8e711..9953c6e  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 2ef4392] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   9953c6e..2ef4392  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 55f3222] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   2ef4392..55f3222  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 14352cf] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   55f3222..14352cf  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 5d67227] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   14352cf..5d67227  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 8d2aad7] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   5d67227..8d2aad7  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 3d3f3d7] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   8d2aad7..3d3f3d7  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 9da28e4] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   3d3f3d7..9da28e4  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 03085d3] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   9da28e4..03085d3  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main b3ee9a2] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   03085d3..b3ee9a2  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main fd25ba5] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   b3ee9a2..fd25ba5  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main e61e14b] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   fd25ba5..e61e14b  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main e7dde59] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   e61e14b..e7dde59  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 9a76561] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   e7dde59..9a76561  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 07b6393] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   9a76561..07b6393  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 2a8eecd] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   07b6393..2a8eecd  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main b0457cb] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   2a8eecd..b0457cb  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main fb70107] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   b0457cb..fb70107  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main eeda395] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   fb70107..eeda395  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main d45987a] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   eeda395..d45987a  main -> main
+TSETMC valid rows: 3532
+Stocks: 1898
+Commodities/Futures/Energy: 1634
+stocks.json => 1898 items
+commodities.json => 1634 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 1e5532a] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   d45987a..1e5532a  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 8fc6c69] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   1e5532a..8fc6c69  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main f96bea8] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   8fc6c69..f96bea8  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 6b0016e] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   f96bea8..6b0016e  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main aa4f376] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   6b0016e..aa4f376  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 4bc01cf] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   aa4f376..4bc01cf  main -> main
+TSETMC valid rows: 3532
+Stocks: 1898
+Commodities/Futures/Energy: 1634
+stocks.json => 1898 items
+commodities.json => 1634 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 5d02dec] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   4bc01cf..5d02dec  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 58fe3da] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   5d02dec..58fe3da  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 4198772] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   58fe3da..4198772  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main d8dc379] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   4198772..d8dc379  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 6d50148] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   d8dc379..6d50148  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main bf5d6bc] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   6d50148..bf5d6bc  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 918b55f] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   bf5d6bc..918b55f  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 561f4a0] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   918b55f..561f4a0  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main f94a9c7] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   561f4a0..f94a9c7  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 9602c0c] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   f94a9c7..9602c0c  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main bf8b5eb] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   9602c0c..bf8b5eb  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 2919de4] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   bf8b5eb..2919de4  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main f697345] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   2919de4..f697345  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 2dd70f0] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   f697345..2dd70f0  main -> main
+TSETMC valid rows: 3532
+Stocks: 1898
+Commodities/Futures/Energy: 1634
+stocks.json => 1898 items
+commodities.json => 1634 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 0410ec2] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   72ea1e4..0410ec2  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main e93a1d4] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   1307414..e93a1d4  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 6916951] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   e93a1d4..6916951  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main ab8339e] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   6916951..ab8339e  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 33e5ac2] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   ab8339e..33e5ac2  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 375816e] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   e829a40..375816e  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 92d8f56] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   375816e..92d8f56  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main cbc7a7a] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   92d8f56..cbc7a7a  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 426d20c] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   cbc7a7a..426d20c  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main f2ba671] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   426d20c..f2ba671  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 3fdbe78] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   f2ba671..3fdbe78  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 0e35913] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   3fdbe78..0e35913  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 277995c] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   0e35913..277995c  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 0d70228] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   277995c..0d70228  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 0f96211] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   0d70228..0f96211  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main c29568b] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   0f96211..c29568b  main -> main
+TSETMC valid rows: 3532
+Stocks: 1898
+Commodities/Futures/Energy: 1634
+stocks.json => 1898 items
+commodities.json => 1634 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 032513e] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   c29568b..032513e  main -> main
+TSETMC valid rows: 3532
+Stocks: 1898
+Commodities/Futures/Energy: 1634
+stocks.json => 1898 items
+commodities.json => 1634 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 4019ef6] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   032513e..4019ef6  main -> main
+TSETMC valid rows: 3532
+Stocks: 1898
+Commodities/Futures/Energy: 1634
+stocks.json => 1898 items
+commodities.json => 1634 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 6e13599] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   4019ef6..6e13599  main -> main
+TSETMC valid rows: 3532
+Stocks: 1898
+Commodities/Futures/Energy: 1634
+stocks.json => 1898 items
+commodities.json => 1634 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 07ce415] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   6e13599..07ce415  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main d49e27a] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   07ce415..d49e27a  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 28e0690] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   d49e27a..28e0690  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main d109fbf] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   28e0690..d109fbf  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 781e815] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   b98ad97..781e815  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 235ee08] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   781e815..235ee08  main -> main
+TSETMC valid rows: 3532
+Stocks: 1898
+Commodities/Futures/Energy: 1634
+stocks.json => 1898 items
+commodities.json => 1634 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main 96d5a0c] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   235ee08..96d5a0c  main -> main
+TSETMC valid rows: 3532
+Stocks: 1900
+Commodities/Futures/Energy: 1632
+stocks.json => 1900 items
+commodities.json => 1632 items
+
+VALIDATION OK
+
+PUSH SUCCESS
+[main c2529ad] chore: update TSETMC Iran radar snapshot
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+To https://github.com/mohsen8463teh-ui/MJK.git
+   96d5a0c..c2529ad  main -> main
+TSETMC valid rows: 3532
+Stocks: 1899
+Commodities/Futures/Energy: 1633
+stocks.json => 1899 items
+commodities.json => 1633 items
+
+VALIDATION OK
+
+PUSH SUCCESS
